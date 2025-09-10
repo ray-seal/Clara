@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "825301739515",
+    "project_id": "supportapp-9df04",
+    "storage_bucket": "supportapp-9df04.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:825301739515:android:6f6eaf0365169c6f7b4d5e",
+        "android_client_info": {
+          "package_name": "com.rayseal.supportapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBcWWjr4e3jbRTSs0jsoCEyjX35P2CcxNA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
