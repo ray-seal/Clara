@@ -26,4 +26,5 @@ proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard
 dependencies {
 implementation("com.google.firebase:firebase-auth:22.3.0")
 implementation("com.google.android.gms:play-services-auth:20.7.0")
+implementation("androidx.browser:browser:1.5.0")
 }
