@@ -16,8 +16,14 @@ android:textStyle="bold"
 android:padding="16dp" />
 
 <Button
-android:id="@+id/supportButton"
+android:id="@+id/signUpButton"
 android:layout_width="wrap_content"
 android:layout_height="wrap_content"
-android:text="Get Support" />
+android:text="Sign Up" />
+
+<Button
+  android:id="@+id/signInButton"
+  android:layout_width="wrap_content"
+  android:layout_height="wrap_content"
+  android:text="Sign In" />
 </LinearLayout>
