@@ -35,7 +35,7 @@ import androidx.annotation.NonNull;
             public void onClick(View v) {
                 // Try Anon Sign in
                 mAuth.signInAnonymously()
-                .addOnCompleteListener(MainActivity.this, new onCompleteListener<AuthResult>() {
+                .addOnCompleteListener(MainActivity.this, new OnCompleteListener<AuthResult>() {
                     @Override
                     public void onComplete(@NonNull Task<AuthResult> task) {
                         if (task.isSuccessful()) {
