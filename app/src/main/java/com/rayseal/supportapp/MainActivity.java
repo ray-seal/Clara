@@ -1,6 +1,6 @@
 package com.rayseal.supportapp;
 
-import android.view.View
+import android.view.View;
 import android.os.Bundle;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
