@@ -1,7 +1,8 @@
 package com.rayseal.supportapp;
 
 import android.os.Bundle;
-import android.view.View;
+import android.app.AlertDialog;
+import android.widget.EditText;
 import android.widget.Button;
 import android.widget.TextView;
 import androidx.appcompat.app.AppCompatActivity;
@@ -38,28 +39,67 @@ import androidx.annotation.NonNull;
         mFirebaseAnalytics.logEvent(FirebaseAnalytics.Event.APP_OPEN, analyticsBundle);
 
         welcomeText = findViewById(R.id.welcomeText);
-        Button supportButton = findViewById(R.id.supportButton);
+       Button signUpButton = findViewById(R.id.signUpButton);
+        Button signInButton = findViewById(R.id.signInButton);
 
-        supportButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                mAuth.signInAnonymously()
-                .addOnCompleteListener(MainActivity.this, new OnCompleteListener<AuthResult>() {
-                    @Override
-                    public void onComplete(@NonNull Task<AuthResult> task) {
-                        if (task.isSuccessful()) {
-                            welcomeText.setText("Signed in anonymously! You are not alone. Support is available!");
+         signUpButton.setOnClickListener(v -> showAuthDialog(true));
+        signInButton.setOnClickListener(v -> showAuthDialog(false));
+    {
 
-                            // Log a custom event when a user signs in anon
-                            Bundle signInBundle = new Bundle();
-                            signInBundle.putString(FirebaseAnalytics.Param.METHOD, "anonymous");
-                            mFirebaseAnalytics.logEvent("anonymous_sign_in", signInBundle);
+        private void showAuthDialog(boolean isSignUp) {
+      AlertDialog.Builder builder = new AlertDialogBuilder(this);
+      builder.setTitle(isSignUp ? "Sign Up" : "Sign In");
+
+       EditText email = new EditText(this);
+       email.setHint("Email");
+       EditText password = new EditText(this);
+       password.setHint("Password");
+       password.setInputType(android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD | android.text.InputType.TYPE_CLASS_TEXT);
+
+        android.widget.LinearLayout layout = new android.widget.LinearLayout(this);
+        layout.setOrientation(android.widget.LinearLayout.VERTICAL);
+        layout.addView(email);
+        layout.addView(password);
+        builder.setView(layout);
+
+        builder.setPositiveButton(isSignUp ? "Sign up" | "Sign In", (dialog, which) -> {
+            String emailText = email.getText().toString().trim();
+            String passwordText = password.getText().toString();
+
+            if (isSignUp) {
+                mAuth.createUserWithEmailAndPassword(emailText, passwordText)
+                    .addOnCompleteListener(this, new OnCompleteListener<AuthResult>() {
+                        @Override
+                        public void onComplete(@NonNull Task<AuthResult> task) {
+                            if (task.isSuccessful()) {
+                                welcomeText.setText("Sign up successful! Welcome, " + emailText);
+                                Bundle signUpBundle = new Bundle();
+                                signUpBundle.putString(FirebaseAnalytics.Param.METHOD, "email_signup");
+                                mFirebaseAnalytics.logEvent("sign_up", signUpBundle);
+                            } else {
+                                welcomeText.setText("Sign up failed: " + task.getException().getMessage());
+                            }
+                        }
+                    });
             } else {
-                welcomeText.setText("Auth failed: " + task.getException().getMessage());
+                mAuth.signInWithEmailAndPassword(emailText, passwordText)
+                    .addOnCompleteListener(this, new OnCompleteListener<AuthResult>() {
+                        @Override
+                        public void onComplete(@NonNull Task<AuthResult> task) {
+                            if (task.isSuccessful()) {
+                                welcomeText.setText("Sign in successful! Welcome back, " + "email_signin");
+                                Bundle signInBundle = new Bundle();
+                                signInBundle.putString(FirebaseAnalytics.Param.METHOD, "email_signin");
+                                mFirebaseAnalytics.logEvent("sign_in", signInBundle);
+                            } else {
+                                welcomeText.setText("Sign in failed: " + task.getException().getMessage());
+                            }
+                        }
+                    });
             }
-        }
-    });
-}
-});
+
+        });
+        builder.setNegativeButton("Cancel", (dialog, which) -> dialog.cancel());
+        builder.show();
     }
-}
+    }
