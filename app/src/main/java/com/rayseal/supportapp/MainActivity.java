@@ -12,7 +12,7 @@ import com.google.firebase.auth.AuthResult;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 
-iimportandroidx.annotation.NonNull;
+import androidx.annotation.NonNull;
 
     public class MainActivity extends AppCompatActivity {
         private FirebaseAuth mAuth;
