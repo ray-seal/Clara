@@ -1,0 +1,5 @@
+<resources>
+  <style name="Theme.SupportApp" parent="Theme.MaterialComponents.DayNight.DarkActionBar">
+    <!-- customise here -->
+  </style>
+</resources>
