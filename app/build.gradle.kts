@@ -4,7 +4,9 @@ id("com.google.gms.google-services")
 }
 
 android {
+namespace = "com.rayseal.supportapp"
 compileSdk = 34
+
 defaultConfig {
 applicationId = "com.rayseal.supportapp"
 minSdk = 21
@@ -12,6 +14,7 @@ targetSdk = 34
 versionCode = 1
 versionName = "1.0"
 }
+
 buildTypes {
 getByName("release") {
 isMinifyEnabled = false
