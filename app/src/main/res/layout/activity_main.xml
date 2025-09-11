@@ -4,7 +4,19 @@ android:layout_width="match_parent"
 android:layout_height="match_parent"
 android:orientation="vertical"
 android:gravity="center"
-android:padding="24dp">
+android:padding="24dp"
+android:background="#87CEEB">
+
+<TextView
+android:id="@+id/claraTitle"
+android:layout_width="wrap_content"
+android:layout_height="wrap_content"
+android:text="Clara!"
+android:textSize="36sp"
+android:textStyle="bold"
+android:textColor="#FFA500"
+android:padding="8dp" />
+
 
 <TextView
 android:id="@+id/welcomeText"
@@ -13,7 +25,7 @@ android:layout_height="wrap_content"
 android:text="Welcome To Clara! Where Mental Health Matters"
 android:textSize="24sp"
 android:textStyle="bold"
-android:padding="16dp" />
+android:padding="8dp" />
 
 <Button
 android:id="@+id/signUpButton"
