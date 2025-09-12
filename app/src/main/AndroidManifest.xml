@@ -17,6 +17,9 @@ android:theme="@style/Theme.SupportApp">
 <category android:name="android.intent.category.LAUNCHER" />
 </intent-filter>
 </activity>
+
+<activity android:name=".PublicFeedActivity" />
+  
 </application>
 
 </manifest>
