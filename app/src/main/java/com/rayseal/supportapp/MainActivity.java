@@ -8,6 +8,7 @@ import android.widget.EditText;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.LinearLayout;
+import android.content.Intent;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.google.firebase.FirebaseApp;
@@ -23,6 +24,7 @@ public class MainActivity extends AppCompatActivity {
     private FirebaseAuth mAuth;
     private TextView welcomeText;
     private FirebaseAnalytics mFirebaseAnalytics;
+    private Button signUpButton, signInButton, continueButton;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -42,8 +44,9 @@ public class MainActivity extends AppCompatActivity {
         mFirebaseAnalytics.logEvent(FirebaseAnalytics.Event.APP_OPEN, analyticsBundle);
 
         welcomeText = findViewById(R.id.welcomeText);
-        Button signUpButton = findViewById(R.id.signUpButton);
-        Button signInButton = findViewById(R.id.signInButton);
+        signUpButton = findViewById(R.id.signUpButton);
+        signInButton = findViewById(R.id.signInButton);
+        continueButton = findViewById(R.id.continueButton);
 
         signUpButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -58,8 +61,18 @@ public class MainActivity extends AppCompatActivity {
                 showAuthDialog(false);
             }
         });
-    }
 
+        continueButton.setOnClickListener(new View.OnClickListener() {
+      @Override
+      public void onClick(View v) {
+          // Launch public feed activity
+          Intent intent = new Intent(MainActivity.this, PublicFeedActivity.class);
+          startActivity(intent);
+          finish();
+      }
+        });
+    }
+    
     private void showAuthDialog(final boolean isSignUp) {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle(isSignUp ? "Sign Up" : "Sign In");
@@ -93,6 +106,7 @@ public class MainActivity extends AppCompatActivity {
                                     Bundle signUpBundle = new Bundle();
                                     signUpBundle.putString(FirebaseAnalytics.Param.METHOD, "email_signup");
                                     mFirebaseAnalytics.logEvent("sign_up", signUpBundle);
+                                    updateButtonsAfterAuth();
                                 } else {
                                     welcomeText.setText("Sign up failed: " + task.getException().getMessage());
                                 }
@@ -108,6 +122,7 @@ public class MainActivity extends AppCompatActivity {
                                     Bundle signInBundle = new Bundle();
                                     signInBundle.putString(FirebaseAnalytics.Param.METHOD, "email_signin");
                                     mFirebaseAnalytics.logEvent("sign_in", signInBundle);
+                                    updateButtonsAfterAuth();
                                 } else {
                                     welcomeText.setText("Sign in failed: " + task.getException().getMessage());
                                 }
@@ -120,4 +135,10 @@ public class MainActivity extends AppCompatActivity {
         builder.setNegativeButton("Cancel", null);
         builder.show();
     }
+
+private void updateButtonsAfterAuth() {
+    signUpButton.setVisibility(View.GONE);
+    signInButton.setVisibility(View.GONE);
+    continueButton.setVisibility(View.VISIBLE);
+}
 }
