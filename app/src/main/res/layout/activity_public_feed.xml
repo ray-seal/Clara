@@ -64,12 +64,12 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:paddingLeft="8dp"
-    android:padding_right="8dp"
+    android:padding_right="8dp">
     <LinearLayout
       android:id="@+id/categoryCheckboxes"
       android:layout_width="wrap_content"
       android:layout_height="wrap_content"
-      android:orientation="horizontal"
+      android:orientation="horizontal">
       <!-- Dynamically filled in code -->
     </LinearLayout>
   </HorizontalScrollView>
