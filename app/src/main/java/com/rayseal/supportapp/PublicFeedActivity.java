@@ -66,7 +66,7 @@ public class PublicFeedActivity extends AppCompatActivity {
     }
 
     private void setupCategoryFilter() {
-        List<String> filterOptions = new ArrayList<String>();
+        List<String> filterOptions = new ArrayList<>();
         filterOptions.add("All");
         filterOptions.addAll(categories);
         ArrayAdapter<String> adapter = new ArrayAdapter<String>(this,
