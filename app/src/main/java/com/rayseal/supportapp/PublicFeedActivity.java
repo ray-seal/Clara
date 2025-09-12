@@ -3,6 +3,7 @@ package com.rayseal.supportapp;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.*;
+import android.graphics.Color;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
