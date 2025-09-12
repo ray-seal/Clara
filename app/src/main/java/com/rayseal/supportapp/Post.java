@@ -1,6 +1,6 @@
 package com.rayseal.supportapp;
 
-import java.util.list;
+import java.util.List;
 
 public class Post {
   public String content;
