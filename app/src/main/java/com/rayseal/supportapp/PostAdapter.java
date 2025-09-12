@@ -18,7 +18,7 @@ public PostAdapter(List<Post> posts) {
 @NonNull
   @Override
   public PostViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-    view v = LayoutInflater.from(parent.getContext())
+    View v = LayoutInflater.from(parent.getContext())
       .inflate(R.layout.item_post, parent, false);
     return new PostViewHolder(v);
   }
