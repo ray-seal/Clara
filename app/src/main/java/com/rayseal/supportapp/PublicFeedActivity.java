@@ -57,6 +57,7 @@ public class PublicFeedActivity extends AppCompatActivity {
         for (String cat : categories) {
             CheckBox checkBox = new CheckBox(this);
             checkBox.setText(cat);
+            checkBox.setTextColor(Color.parseColor("#212121"));
             categoryCheckboxes.addView(checkBox);
             categoryCheckBoxesList.add(checkBox);
         }
@@ -67,7 +68,21 @@ public class PublicFeedActivity extends AppCompatActivity {
         filterOptions.add("All");
         filterOptions.addAll(categories);
         ArrayAdapter<String> adapter = new ArrayAdapter<>(this,
-                android.R.layout.simple_spinner_item, filterOptions);
+                android.R.layout.simple_spinner_item, filterOptions) {
+         @Override
+         public View getView(int position, View convertView, ViewGroup parent) {
+             View v = super.getView(position, convertView, parent);
+             ((TextView) v).setTextColor(Color.parseColor("#212121"));
+             return v;
+         }
+    @Override
+    public View getDropDownView(int position, View convertView, ViewGroup parent) {
+        View v = super.getDropDownView(position, convertView, parent);
+        ((TextView) v).setTextColor(Color.parseColor("#212121"));
+        return v;
+    }
+        };
+        
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         categoryFilterSpinner.setAdapter(adapter);
 
