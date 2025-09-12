@@ -45,6 +45,7 @@
     android:layout_width="wrap_content"
     android:layout_height="wrap_content"
     android:text="How can we help you today?"
+    android:textColor="#1A237E"
     android:textSize="18sp"
     android:textStyle="bold"
     android:layout_gravity="center_horizontal"
