@@ -35,7 +35,7 @@ public PostAdapter(List<Post> posts) {
     return posts.size();
   }
 
-static class PostViewHolder extends RecyclerView.VewHolder {
+public static class PostViewHolder extends RecyclerView.ViewHolder {
   TextView postContentText, postCategoriesText;
   PostViewHolder(View itemView) {
     super(itemView);
