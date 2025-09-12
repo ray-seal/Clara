@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+  xmlns:android="http://schemas.android.com/apk/res/android"
+  android:layout_width="match_parent"
+  android:layout_height="match_parent"
+  android:orientation="vertical"
+  android:background="#E3F6FD"
+  android:padding="0dp">
+
+  <LinearLayout
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:padding="12dp">
+
+    <Button
+      android:id="@+id/crisisbutton"
+      android:layout_width="wrap_content"
+      android:layout_height="wrap_content"
+      android:text="CRISIS!"
+      android:textColor="#FFFFFF"
+      android:background="#FF0000"
+      android:textStyle="bold"
+      android:padding="8dp"
+      android:layout_weight="1"/>
+
+    <View
+      android:layout_width="0dp"
+      android:layout_height="0dp"
+      android:layout_weight="6"/>
