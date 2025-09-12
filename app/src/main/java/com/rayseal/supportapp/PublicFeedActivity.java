@@ -1,23 +1,39 @@
 package com.rayseal.supportapp;
 
+import android.Manifest;
+import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.net.Uri;
 import android.os.Bundle;
+import android.provider.MediaStore;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.*;
 import android.graphics.Color;
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import com.google.firebase.firestore.*;
+import com.google.firebase.storage.FirebaseStorage;
+import com.google.firebase.storage.StorageReference;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.auth.FirebaseAuth;
 import java.util.*;
 
 public class PublicFeedActivity extends AppCompatActivity {
+    private static final int PERMISSION_REQUEST_CODE = 100;
+    private static final int IMAGE_PICK_REQUEST = 200;
+    
     private EditText postEditText;
     private LinearLayout categoryCheckboxes;
     private Button postButton, crisisButton;
+    private Button selectImageButton, removeImageButton;
+    private TextView imageStatusText;
+    private ImageView imagePreview;
     private Spinner categoryFilterSpinner;
     private RecyclerView postsRecyclerView;
     private PostAdapter postAdapter;
@@ -26,8 +42,11 @@ public class PublicFeedActivity extends AppCompatActivity {
     );
     private List<CheckBox> categoryCheckBoxesList = new ArrayList<>();
     private FirebaseFirestore db;
+    private FirebaseStorage storage;
+    private StorageReference storageRef;
     private List<Post> posts = new ArrayList<>();
     private String selectedFilter = "All";
+    private Uri selectedImageUri;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -36,17 +55,24 @@ public class PublicFeedActivity extends AppCompatActivity {
 
         FirebaseApp.initializeApp(this);
         db = FirebaseFirestore.getInstance();
+        storage = FirebaseStorage.getInstance();
+        storageRef = storage.getReference();
 
         postEditText = findViewById(R.id.postEditText);
         categoryCheckboxes = findViewById(R.id.categoryCheckboxes);
         postButton = findViewById(R.id.postButton);
         crisisButton = findViewById(R.id.crisisButton);
+        selectImageButton = findViewById(R.id.selectImageButton);
+        removeImageButton = findViewById(R.id.removeImageButton);
+        imageStatusText = findViewById(R.id.imageStatusText);
+        imagePreview = findViewById(R.id.imagePreview);
         categoryFilterSpinner = findViewById(R.id.categoryFilterSpinner);
         postsRecyclerView = findViewById(R.id.postsRecyclerView);
 
         setupCategoryCheckboxes();
         setupCategoryFilter();
         setupRecyclerView();
+        setupImageHandlers();
 
         postButton.setOnClickListener(v -> submitPost());
         crisisButton.setOnClickListener(v -> showCrisisDialog());
@@ -103,12 +129,74 @@ public class PublicFeedActivity extends AppCompatActivity {
         postsRecyclerView.setAdapter(postAdapter);
     }
 
+    private void setupImageHandlers() {
+        selectImageButton.setOnClickListener(v -> {
+            if (checkPermissions()) {
+                openImagePicker();
+            } else {
+                requestPermissions();
+            }
+        });
+
+        removeImageButton.setOnClickListener(v -> {
+            selectedImageUri = null;
+            imagePreview.setVisibility(View.GONE);
+            removeImageButton.setVisibility(View.GONE);
+            imageStatusText.setText("No image selected");
+        });
+    }
+
+    private boolean checkPermissions() {
+        return ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) 
+               == PackageManager.PERMISSION_GRANTED;
+    }
+
+    private void requestPermissions() {
+        ActivityCompat.requestPermissions(this, 
+            new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, 
+            PERMISSION_REQUEST_CODE);
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, 
+                                         @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == PERMISSION_REQUEST_CODE) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                openImagePicker();
+            } else {
+                Toast.makeText(this, "Permission required to select images", Toast.LENGTH_SHORT).show();
+            }
+        }
+    }
+
+    private void openImagePicker() {
+        Intent intent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+        intent.setType("image/*");
+        startActivityForResult(intent, IMAGE_PICK_REQUEST);
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == IMAGE_PICK_REQUEST && resultCode == RESULT_OK && data != null) {
+            selectedImageUri = data.getData();
+            if (selectedImageUri != null) {
+                imagePreview.setImageURI(selectedImageUri);
+                imagePreview.setVisibility(View.VISIBLE);
+                removeImageButton.setVisibility(View.VISIBLE);
+                imageStatusText.setText("Image selected");
+            }
+        }
+    }
+
     private void submitPost() {
         String content = postEditText.getText().toString().trim();
-        if (content.isEmpty()) {
-            Toast.makeText(this, "Please enter something.", Toast.LENGTH_SHORT).show();
+        if (content.isEmpty() && selectedImageUri == null) {
+            Toast.makeText(this, "Please enter text or select an image.", Toast.LENGTH_SHORT).show();
             return;
         }
+        
         List<String> selectedCategories = new ArrayList<>();
         for (CheckBox cb : categoryCheckBoxesList)
             if (cb.isChecked()) selectedCategories.add(cb.getText().toString());
@@ -121,20 +209,69 @@ public class PublicFeedActivity extends AppCompatActivity {
         String userId = FirebaseAuth.getInstance().getCurrentUser() != null ?
                 FirebaseAuth.getInstance().getCurrentUser().getUid() : "anonymous";
 
+        // Disable post button during upload
+        postButton.setEnabled(false);
+        postButton.setText("Posting...");
+
+        if (selectedImageUri != null) {
+            // Upload image first, then create post
+            uploadImageAndPost(content, selectedCategories, userId);
+        } else {
+            // Create post without image
+            createPost(content, selectedCategories, userId, null);
+        }
+    }
+
+    private void uploadImageAndPost(String content, List<String> categories, String userId) {
+        String imageFileName = "post_images/" + userId + "_" + System.currentTimeMillis() + ".jpg";
+        StorageReference imageRef = storageRef.child(imageFileName);
+
+        imageRef.putFile(selectedImageUri)
+                .addOnSuccessListener(taskSnapshot -> {
+                    imageRef.getDownloadUrl().addOnSuccessListener(uri -> {
+                        createPost(content, categories, userId, uri.toString());
+                    }).addOnFailureListener(e -> {
+                        Toast.makeText(this, "Failed to get image URL.", Toast.LENGTH_SHORT).show();
+                        resetPostButton();
+                    });
+                })
+                .addOnFailureListener(e -> {
+                    Toast.makeText(this, "Failed to upload image.", Toast.LENGTH_SHORT).show();
+                    resetPostButton();
+                });
+    }
+
+    private void createPost(String content, List<String> categories, String userId, String imageUrl) {
         Map<String, Object> post = new HashMap<>();
         post.put("userId", userId);
         post.put("content", content);
-        post.put("categories", selectedCategories);
+        post.put("categories", categories);
         post.put("timestamp", FieldValue.serverTimestamp());
+        if (imageUrl != null) {
+            post.put("imageUrl", imageUrl);
+        }
 
         db.collection("posts").add(post)
                 .addOnSuccessListener(documentReference -> {
                     postEditText.setText("");
                     for (CheckBox cb : categoryCheckBoxesList) cb.setChecked(false);
+                    selectedImageUri = null;
+                    imagePreview.setVisibility(View.GONE);
+                    removeImageButton.setVisibility(View.GONE);
+                    imageStatusText.setText("No image selected");
                     Toast.makeText(this, "Post added!", Toast.LENGTH_SHORT).show();
+                    resetPostButton();
                     loadPosts();
                 })
-                .addOnFailureListener(e -> Toast.makeText(this, "Error posting.", Toast.LENGTH_SHORT).show());
+                .addOnFailureListener(e -> {
+                    Toast.makeText(this, "Error posting.", Toast.LENGTH_SHORT).show();
+                    resetPostButton();
+                });
+    }
+
+    private void resetPostButton() {
+        postButton.setEnabled(true);
+        postButton.setText("Post");
     }
 
     private void loadPosts() {
@@ -149,7 +286,8 @@ public class PublicFeedActivity extends AppCompatActivity {
                 for (QueryDocumentSnapshot doc : task.getResult()) {
                     String content = doc.getString("content");
                     List<String> cats = (List<String>) doc.get("categories");
-                    posts.add(new Post(content, cats));
+                    String imageUrl = doc.getString("imageUrl");
+                    posts.add(new Post(content, cats, imageUrl));
                 }
                 postAdapter.notifyDataSetChanged();
             }
