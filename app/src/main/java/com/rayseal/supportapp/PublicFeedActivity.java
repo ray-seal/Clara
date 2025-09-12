@@ -2,6 +2,7 @@ package com.rayseal.supportapp;
 
 import android.os.Bundle;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.*;
 import android.graphics.Color;
 import androidx.annotation.NonNull;
@@ -65,10 +66,10 @@ public class PublicFeedActivity extends AppCompatActivity {
     }
 
     private void setupCategoryFilter() {
-        List<String> filterOptions = new ArrayList<>();
+        List<String> filterOptions = new ArrayList<String>();
         filterOptions.add("All");
         filterOptions.addAll(categories);
-        ArrayAdapter<String> adapter = new ArrayAdapter<>(this,
+        ArrayAdapter<String> adapter = new ArrayAdapter<String>(this,
                 android.R.layout.simple_spinner_item, filterOptions) {
          @Override
          public View getView(int position, View convertView, ViewGroup parent) {
