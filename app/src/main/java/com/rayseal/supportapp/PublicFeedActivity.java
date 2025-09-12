@@ -8,6 +8,7 @@ import android.view.ViewGroup;
 import android.content.Intent;
 import android.net.Uri;
 import android.content.pm.PackageManager;
+import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -17,6 +18,7 @@ import androidx.core.content.ContextCompat;
 import com.google.firebase.firestore.*;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 import java.util.*;
@@ -39,6 +41,7 @@ public class PublicFeedActivity extends AppCompatActivity {
     private Uri imageUri = null;
     private static final int PICK_IMAGE_REQUEST = 1;
     private static final int REQUEST_IMAGE_PERMISSION = 100;
+    private static final String TAG = "PublicFeedActivity";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -70,6 +73,7 @@ public class PublicFeedActivity extends AppCompatActivity {
 
     private void setupCategoryCheckboxes() {
         categoryCheckBoxesList.clear();
+        categoryCheckboxes.removeAllViews();
         for (String cat : categories) {
             CheckBox checkBox = new CheckBox(this);
             checkBox.setText(cat);
@@ -184,8 +188,13 @@ public class PublicFeedActivity extends AppCompatActivity {
             Toast.makeText(this, "Please select at least one category.", Toast.LENGTH_SHORT).show();
             return;
         }
-        String userId = FirebaseAuth.getInstance().getCurrentUser() != null ?
-                FirebaseAuth.getInstance().getCurrentUser().getUid() : "anonymous";
+        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+        if (user == null) {
+            Toast.makeText(this, "You must be signed in to post.", Toast.LENGTH_SHORT).show();
+            Log.e(TAG, "FirebaseAuth.getInstance().getCurrentUser() returned null");
+            return;
+        }
+        String userId = user.getUid();
         Map<String, Object> post = new HashMap<>();
         post.put("userId", userId);
         post.put("content", content);
@@ -194,14 +203,20 @@ public class PublicFeedActivity extends AppCompatActivity {
 
         if (imageUri != null) {
             StorageReference storageRef = FirebaseStorage.getInstance().getReference().child("post_images/" + System.currentTimeMillis() + ".jpg");
-            storageRef.putFile(imageUri).addOnSuccessListener(taskSnapshot -> {
-                storageRef.getDownloadUrl().addOnSuccessListener(uri -> {
-                    post.put("imageUrl", uri.toString());
-                    uploadPostToFirestore(post);
+            storageRef.putFile(imageUri)
+                .addOnSuccessListener(taskSnapshot ->
+                    storageRef.getDownloadUrl().addOnSuccessListener(uri -> {
+                        post.put("imageUrl", uri.toString());
+                        uploadPostToFirestore(post);
+                    }).addOnFailureListener(e -> {
+                        Toast.makeText(this, "Image upload failed: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                        Log.e(TAG, "Image upload getDownloadUrl failed", e);
+                    })
+                )
+                .addOnFailureListener(e -> {
+                    Toast.makeText(this, "Image upload failed: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                    Log.e(TAG, "Image upload putFile failed", e);
                 });
-            }).addOnFailureListener(e -> {
-                Toast.makeText(this, "Image upload failed.", Toast.LENGTH_SHORT).show();
-            });
         } else {
             uploadPostToFirestore(post);
         }
@@ -218,7 +233,10 @@ public class PublicFeedActivity extends AppCompatActivity {
                 Toast.makeText(this, "Post added!", Toast.LENGTH_SHORT).show();
                 loadPosts();
             })
-            .addOnFailureListener(e -> Toast.makeText(this, "Error posting.", Toast.LENGTH_SHORT).show());
+            .addOnFailureListener(e -> {
+                Toast.makeText(this, "Error posting: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                Log.e(TAG, "Firestore add failed", e);
+            });
     }
 
     private void loadPosts() {
@@ -237,6 +255,8 @@ public class PublicFeedActivity extends AppCompatActivity {
                     posts.add(new Post(content, cats, imageUrl));
                 }
                 postAdapter.notifyDataSetChanged();
+            } else {
+                Log.e(TAG, "Error loading posts: ", task.getException());
             }
         });
     }
