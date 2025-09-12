@@ -16,7 +16,7 @@
     android:padding="12dp">
 
     <Button
-      android:id="@+id/crisisbutton"
+      android:id="@+id/crisisButton"
       android:layout_width="wrap_content"
       android:layout_height="wrap_content"
       android:text="CRISIS!"
