@@ -35,6 +35,14 @@ public class MainActivity extends AppCompatActivity {
         FirebaseApp.initializeApp(this);
         mAuth = FirebaseAuth.getInstance();
 
+        // Stay Signed In
+        if (mAuth.getCurrentUser() != null) {
+            Intent intent = new Intent(MainActivity.this, SignedInActivity.class);
+            startActivity(intent);
+            finish();
+            return;
+        }
+
         // Initialize Firebase Analytics
         mFirebaseAnalytics = FirebaseAnalytics.getInstance(this);
 
