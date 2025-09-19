@@ -32,5 +32,4 @@ implementation("com.google.firebase:firebase-storage:20.3.0")
 implementation("com.google.android.gms:play-services-auth:20.7.0")
 implementation("androidx.browser:browser:1.5.0")
 implementation("com.github.bumptech.glide:glide:4.16.0")
-implementation("com.google.android.flexbox:flexbox:2.0.1")
 }
