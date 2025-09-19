@@ -79,6 +79,13 @@ public class PublicFeedActivity extends AppCompatActivity {
             CheckBox checkBox = new CheckBox(this);
             checkBox.setText(cat);
             checkBox.setTextColor(Color.parseColor("#212121"));
+            
+            GridLayout.LayoutParams params = new GridLayout.LayoutParams();
+            params.width = GridLayout.LayoutParams.WRAP_CONTENT;
+            params.height = GridLayout.LayoutParams.WRAP_CONTENT;
+            params.setMargins(8, 8, 8, 8);
+            checkBox.setLayoutParams(params);
+            
             categoryCheckboxes.addView(checkBox);
             categoryCheckBoxesList.add(checkBox);
         }
