@@ -22,10 +22,11 @@ import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 import java.util.*;
+import com.google.android.flexbox.FlexboxLayout;
 
 public class PublicFeedActivity extends AppCompatActivity {
     private EditText postEditText;
-    private LinearLayout categoryCheckboxes;
+    private FlexboxLayout categoryCheckboxes;
     private Button postButton, crisisButton, selectImageButton;
     private Spinner categoryFilterSpinner;
     private ImageView postImagePreview;
