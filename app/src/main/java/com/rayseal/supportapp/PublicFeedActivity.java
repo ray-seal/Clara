@@ -26,8 +26,8 @@ import android.widget.GridLayout;
 
 public class PublicFeedActivity extends AppCompatActivity {
     private EditText postEditText;
-    private FlexboxLayout categoryCheckboxes;
     private Button postButton, crisisButton, selectImageButton;
+    private GridLayout categoryCheckboxes;
     private Spinner categoryFilterSpinner;
     private ImageView postImagePreview;
     private RecyclerView postsRecyclerView;
@@ -75,6 +75,8 @@ public class PublicFeedActivity extends AppCompatActivity {
     private void setupCategoryCheckboxes() {
         categoryCheckBoxesList.clear();
         categoryCheckboxes.removeAllViews();
+        categoryCheckboxes.setColumnCount(3);
+        
         for (String cat : categories) {
             CheckBox checkBox = new CheckBox(this);
             checkBox.setText(cat);
