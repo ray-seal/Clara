@@ -22,7 +22,7 @@ import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 import java.util.*;
-import com.google.android.flexbox.FlexboxLayout;
+import android.widget.GridLayout;
 
 public class PublicFeedActivity extends AppCompatActivity {
     private EditText postEditText;
