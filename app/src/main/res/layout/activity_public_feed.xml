@@ -118,20 +118,15 @@
     android:contentDescription="Selected image preview"/>
 
   <!-- Category selection -->
-  <HorizontalScrollView
-    android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:paddingLeft="8dp"
-    android:paddingRight="8dp">
-    <LinearLayout
-      android:id="@+id/categoryCheckboxes"
-      android:layout_width="wrap_content"
-      android:layout_height="wrap_content"
-      android:orientation="horizontal">
-      <!-- Dynamically filled in code -->
-    </LinearLayout>
-  </HorizontalScrollView>
-
+ <com.google.android.flexbox.FlexboxLayout
+   android:id="@+id/categoryCheckboxes"
+   android:layout_width="match_parent"
+   android:layout_height="wrap_content"
+   app:flexWrap="wrap"
+   app:justifyContent="flex_start"
+   android:paddingLeft="8dp"
+   android:paddingRight="8dp"/>
+  
   <Button
     android:id="@+id/postButton"
     android:layout_width="wrap_content"
