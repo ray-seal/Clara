@@ -31,13 +31,15 @@
       android:layout_height="0dp"
       android:layout_weight="6"/>
 
-    <ImageButton
-      android:id="@+id/settingsButton"
+    <!-- User profile avatar replaces settingsButton -->
+    <ImageView
+      android:id="@+id/userAvatar"
       android:layout_width="40dp"
       android:layout_height="40dp"
-      android:src="@android:drawable/ic_menu_manage"
+      android:src="@drawable/ic_person"
       android:background="@android:color/transparent"
-      android:layout_weight="1"/>
+      android:layout_weight="1"
+      android:contentDescription="Profile Picture"/>
   </LinearLayout>
 
   <!-- Post Box -->
@@ -118,15 +120,15 @@
     android:contentDescription="Selected image preview"/>
 
   <!-- Category selection -->
- <GridLayout
-   android:id="@+id/categoryCheckboxes"
-   android:layout_width="match_parent"
-   android:layout_height="wrap_content"
-   android:columnCount="3"
-   android:paddingLeft="8dp"
-   android:paddingRight="8dp"
-   android:layout_marginTop="8dp"
-   android:layout_marginBottom="8dp"/>
+  <GridLayout
+    android:id="@+id/categoryCheckboxes"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:columnCount="3"
+    android:paddingLeft="8dp"
+    android:paddingRight="8dp"
+    android:layout_marginTop="8dp"
+    android:layout_marginBottom="8dp"/>
    
   <Button
     android:id="@+id/postButton"
