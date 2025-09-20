@@ -8,7 +8,7 @@ public class PrivacySettings {
     public boolean showSupportCategories = true;
     public boolean showBio = true;
     public boolean showContact = false;
-    public boolean showStats = false;
+    public boolean showStats = true;
 
-    public PrivacySettings(){}
+    public PrivacySettings() {}
 }
