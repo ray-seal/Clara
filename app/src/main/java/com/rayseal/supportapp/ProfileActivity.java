@@ -152,12 +152,10 @@ public class ProfileActivity extends AppCompatActivity {
 
     // Permission request logic for Android 13+ and below
     private void pickImage(int reqCode) {
-        String permission;
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            permission = android.Manifest.permission.READ_MEDIA_IMAGES;
-        } else {
-            permission = android.Manifest.permission.READ_EXTERNAL_STORAGE;
-        }
+        // Android 13 and above: READ_MEDIA_IMAGES, below: READ_EXTERNAL_STORAGE
+        String permission = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
+                ? android.Manifest.permission.READ_MEDIA_IMAGES
+                : android.Manifest.permission.READ_EXTERNAL_STORAGE;
 
         if (ContextCompat.checkSelfPermission(this, permission)
                 != PackageManager.PERMISSION_GRANTED) {
@@ -352,4 +350,39 @@ public class ProfileActivity extends AppCompatActivity {
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult
+        super.onActivityResult(requestCode, resultCode, data);
+        if (resultCode == Activity.RESULT_OK && data != null && data.getData() != null) {
+            if (requestCode == PICK_PROFILE_PIC) {
+                profilePicUri = data.getData();
+                imgProfilePic.setImageURI(profilePicUri);
+            } else if (requestCode == PICK_COVER_PHOTO) {
+                coverPhotoUri = data.getData();
+                imgCoverPhoto.setImageURI(coverPhotoUri);
+            }
+        }
+    }
+
+    private interface OnImageUploadListener {
+        void onSuccess(String url);
+    }
+
+    private void showCrisisDialog() {
+        String country = Locale.getDefault().getCountry();
+        String messageUK = "Immediate help (UK):\n\n" +
+                "Call 999 in an emergency\n" +
+                "Call NHS 111 for urgent advice\n" +
+                "Text 'SHOUT' to 85258\n" +
+                "Samaritans: 116 123\n";
+        String message = country.equals("GB") ? messageUK :
+                "For help, please reach out to local emergency and support services.";
+        new AlertDialog.Builder(this)
+                .setTitle("Crisis Support")
+                .setMessage(message)
+                .setPositiveButton("OK", null)
+                .show();
+    }
+
+    private void openSettings() {
+        Toast.makeText(this, "Settings coming soon", Toast.LENGTH_SHORT).show();
+    }
+}
