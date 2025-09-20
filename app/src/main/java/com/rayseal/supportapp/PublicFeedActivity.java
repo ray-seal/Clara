@@ -22,12 +22,12 @@ import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 import java.util.*;
-import com.google.android.flexbox.FlexboxLayout;
+import android.widget.GridLayout;
 
 public class PublicFeedActivity extends AppCompatActivity {
     private EditText postEditText;
-    private FlexboxLayout categoryCheckboxes;
     private Button postButton, crisisButton, selectImageButton;
+    private GridLayout categoryCheckboxes;
     private Spinner categoryFilterSpinner;
     private ImageView postImagePreview;
     private RecyclerView postsRecyclerView;
@@ -75,10 +75,19 @@ public class PublicFeedActivity extends AppCompatActivity {
     private void setupCategoryCheckboxes() {
         categoryCheckBoxesList.clear();
         categoryCheckboxes.removeAllViews();
+        categoryCheckboxes.setColumnCount(3);
+        
         for (String cat : categories) {
             CheckBox checkBox = new CheckBox(this);
             checkBox.setText(cat);
             checkBox.setTextColor(Color.parseColor("#212121"));
+            
+            GridLayout.LayoutParams params = new GridLayout.LayoutParams();
+            params.width = GridLayout.LayoutParams.WRAP_CONTENT;
+            params.height = GridLayout.LayoutParams.WRAP_CONTENT;
+            params.setMargins(8, 8, 8, 8);
+            checkBox.setLayoutParams(params);
+            
             categoryCheckboxes.addView(checkBox);
             categoryCheckBoxesList.add(checkBox);
         }
