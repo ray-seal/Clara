@@ -15,6 +15,8 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+import com.bumptech.glide.Glide;
+import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.firebase.firestore.*;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.auth.FirebaseAuth;
@@ -61,6 +63,37 @@ public class PublicFeedActivity extends AppCompatActivity {
         postImagePreview = findViewById(R.id.postImagePreview);
         selectImageButton = findViewById(R.id.selectImageButton);
 
+        // PROFILE AVATAR IN TOP BAR
+        ImageView userAvatar = findViewById(R.id.userAvatar);
+        userAvatar.setOnClickListener(v -> {
+            Intent intent = new Intent(PublicFeedActivity.this, ProfileActivity.class);
+            startActivity(intent);
+        });
+
+        // Load user profile picture from Firestore, or use default avatar
+        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+        if (user != null) {
+            FirebaseFirestore.getInstance().collection("profiles").document(user.getUid()).get()
+                .addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+                    @Override
+                    public void onSuccess(DocumentSnapshot doc) {
+                        String photoUrl = doc.getString("profilePictureUrl");
+                        if (photoUrl != null && !photoUrl.isEmpty()) {
+                            Glide.with(PublicFeedActivity.this)
+                                .load(photoUrl)
+                                .placeholder(R.drawable.ic_person)
+                                .error(R.drawable.ic_person)
+                                .into(userAvatar);
+                        } else {
+                            userAvatar.setImageResource(R.drawable.ic_person);
+                        }
+                    }
+                })
+                .addOnFailureListener(e -> userAvatar.setImageResource(R.drawable.ic_person));
+        } else {
+            userAvatar.setImageResource(R.drawable.ic_person);
+        }
+
         setupCategoryCheckboxes();
         setupCategoryFilter();
         setupRecyclerView();
@@ -76,18 +109,18 @@ public class PublicFeedActivity extends AppCompatActivity {
         categoryCheckBoxesList.clear();
         categoryCheckboxes.removeAllViews();
         categoryCheckboxes.setColumnCount(3);
-        
+
         for (String cat : categories) {
             CheckBox checkBox = new CheckBox(this);
             checkBox.setText(cat);
             checkBox.setTextColor(Color.parseColor("#212121"));
-            
+
             GridLayout.LayoutParams params = new GridLayout.LayoutParams();
             params.width = GridLayout.LayoutParams.WRAP_CONTENT;
             params.height = GridLayout.LayoutParams.WRAP_CONTENT;
             params.setMargins(8, 8, 8, 8);
             checkBox.setLayoutParams(params);
-            
+
             categoryCheckboxes.addView(checkBox);
             categoryCheckBoxesList.add(checkBox);
         }
@@ -99,20 +132,20 @@ public class PublicFeedActivity extends AppCompatActivity {
         filterOptions.addAll(categories);
         ArrayAdapter<String> adapter = new ArrayAdapter<String>(this,
                 android.R.layout.simple_spinner_item, filterOptions) {
-         @Override
-         public View getView(int position, View convertView, ViewGroup parent) {
-             View v = super.getView(position, convertView, parent);
-             ((TextView) v).setTextColor(Color.parseColor("#212121"));
-             return v;
-         }
-         @Override
-         public View getDropDownView(int position, View convertView, ViewGroup parent) {
-             View v = super.getDropDownView(position, convertView, parent);
-             ((TextView) v).setTextColor(Color.parseColor("#212121"));
-             return v;
-         }
+            @Override
+            public View getView(int position, View convertView, ViewGroup parent) {
+                View v = super.getView(position, convertView, parent);
+                ((TextView) v).setTextColor(Color.parseColor("#212121"));
+                return v;
+            }
+            @Override
+            public View getDropDownView(int position, View convertView, ViewGroup parent) {
+                View v = super.getDropDownView(position, convertView, parent);
+                ((TextView) v).setTextColor(Color.parseColor("#212121"));
+                return v;
+            }
         };
-        
+
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         categoryFilterSpinner.setAdapter(adapter);
 
