@@ -7,7 +7,7 @@
   android:background="#E3F6FD"
   android:padding="0dp">
 
-  <!-- Top Bar --> 
+  <!-- Top Bar (fixed) -->
   <LinearLayout
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
@@ -31,7 +31,6 @@
       android:layout_height="0dp"
       android:layout_weight="6"/>
 
-    <!-- User profile avatar replaces settingsButton -->
     <ImageView
       android:id="@+id/userAvatar"
       android:layout_width="40dp"
@@ -42,125 +41,134 @@
       android:contentDescription="Profile Picture"/>
   </LinearLayout>
 
-  <!-- Post Box -->
-  <TextView
-    android:layout_width="wrap_content"
-    android:layout_height="wrap_content"
-    android:text="How can we help you today?"
-    android:textColor="#212121"
-    android:textSize="18sp"
-    android:textStyle="bold"
-    android:layout_gravity="center_horizontal"
-    android:paddingTop="8dp"/>
-
-  <EditText
-    android:id="@+id/postEditText"
-    android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:hint="Share your thoughts or ask for support..."
-    android:textColor="#212121"
-    android:padding="8dp"
-    android:background="#FFFFFF"
-    android:layout_margin="8dp"/>
-
-  <!-- Image upload section -->
-  <LinearLayout
-    android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:orientation="horizontal"
-    android:layout_marginLeft="8dp"
-    android:layout_marginRight="8dp"
-    android:gravity="center_vertical">
-    
-    <Button
-      android:id="@+id/selectImageButton"
-      android:layout_width="wrap_content"
-      android:layout_height="wrap_content"
-      android:text="📷 Add Image"
-      android:background="#E0E0E0"
-      android:textColor="#212121"
-      android:layout_marginRight="8dp"/>
-    
-    <TextView
-      android:id="@+id/imageStatusText"
-      android:layout_width="0dp"
-      android:layout_height="wrap_content"
-      android:layout_weight="1"
-      android:text="No image selected"
-      android:textColor="#757575"
-      android:textSize="12sp"/>
-      
-    <Button
-      android:id="@+id/removeImageButton"
-      android:layout_width="wrap_content"
-      android:layout_height="wrap_content"
-      android:text="❌"
-      android:background="@android:color/transparent"
-      android:textColor="#FF0000"
-      android:visibility="gone"/>
-  </LinearLayout>
-
-  <!-- Image preview -->
-  <ImageView
-    android:id="@+id/imagePreview"
-    android:layout_width="match_parent"
-    android:layout_height="200dp"
-    android:layout_margin="8dp"
-    android:background="#F5F5F5"
-    android:scaleType="centerCrop"
-    android:visibility="gone"/>
-
-  <ImageView
-    android:id="@+id/postImagePreview"
-    android:layout_width="120dp"
-    android:layout_height="120dp"
-    android:layout_marginTop="8dp"
-    android:visibility="gone"
-    android:scaleType="centerCrop"
-    android:contentDescription="Selected image preview"/>
-
-  <!-- Category selection -->
-  <GridLayout
-    android:id="@+id/categoryCheckboxes"
-    android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:columnCount="3"
-    android:paddingLeft="8dp"
-    android:paddingRight="8dp"
-    android:layout_marginTop="8dp"
-    android:layout_marginBottom="8dp"/>
-   
-  <Button
-    android:id="@+id/postButton"
-    android:layout_width="wrap_content"
-    android:layout_height="wrap_content"
-    android:text="Post"
-    android:layout_gravity="center_horizontal"
-    android:background="#FFA500"
-    android:textColor="#FFFFFF"
-    android:layout_marginTop="8dp"/>
-
-  <!-- Category sorting dropdown -->
-  <TextView
-    android:layout_width="wrap_content"
-    android:layout_height="wrap_content"
-    android:text="Filter by category:"
-    android:layout_marginTop="16dp"
-    android:layout_marginLeft="8dp"/>
-
-  <Spinner
-    android:id="@+id/categoryFilterSpinner"
-    android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:layout_marginLeft="8dp"
-    android:layout_marginRight="8dp"
-    android:layout_marginBottom="8dp"/>
-
-  <!-- Post List -->
-  <androidx.recyclerview.widget.RecyclerView
-    android:id="@+id/postsRecyclerView"
+  <!-- Scrollable Content -->
+  <androidx.core.widget.NestedScrollView
+    android:id="@+id/feedScrollView"
     android:layout_width="match_parent"
     android:layout_height="0dp"
     android:layout_weight="1"
-    android:layout_marginBottom="8dp"/>
+    android:fillViewport="true">
+
+    <LinearLayout
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:orientation="vertical">
+
+      <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="How can we help you today?"
+        android:textColor="#212121"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        android:layout_gravity="center_horizontal"
+        android:paddingTop="8dp"/>
+
+      <EditText
+        android:id="@+id/postEditText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Share your thoughts or ask for support..."
+        android:textColor="#212121"
+        android:padding="8dp"
+        android:background="#FFFFFF"
+        android:layout_margin="8dp"/>
+
+      <!-- Image upload section -->
+      <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginLeft="8dp"
+        android:layout_marginRight="8dp"
+        android:gravity="center_vertical">
+
+        <Button
+          android:id="@+id/selectImageButton"
+          android:layout_width="wrap_content"
+          android:layout_height="wrap_content"
+          android:text="📷 Add Image"
+          android:background="#E0E0E0"
+          android:textColor="#212121"
+          android:layout_marginRight="8dp"/>
+        
+        <TextView
+          android:id="@+id/imageStatusText"
+          android:layout_width="0dp"
+          android:layout_height="wrap_content"
+          android:layout_weight="1"
+          android:text="No image selected"
+          android:textColor="#757575"
+          android:textSize="12sp"/>
+          
+        <Button
+          android:id="@+id/removeImageButton"
+          android:layout_width="wrap_content"
+          android:layout_height="wrap_content"
+          android:text="❌"
+          android:background="@android:color/transparent"
+          android:textColor="#FF0000"
+          android:visibility="gone"/>
+      </LinearLayout>
+
+      <ImageView
+        android:id="@+id/imagePreview"
+        android:layout_width="match_parent"
+        android:layout_height="200dp"
+        android:layout_margin="8dp"
+        android:background="#F5F5F5"
+        android:scaleType="centerCrop"
+        android:visibility="gone"/>
+
+      <ImageView
+        android:id="@+id/postImagePreview"
+        android:layout_width="120dp"
+        android:layout_height="120dp"
+        android:layout_marginTop="8dp"
+        android:visibility="gone"
+        android:scaleType="centerCrop"
+        android:contentDescription="Selected image preview"/>
+
+      <GridLayout
+        android:id="@+id/categoryCheckboxes"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:columnCount="3"
+        android:paddingLeft="8dp"
+        android:paddingRight="8dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginBottom="8dp"/>
+
+      <Button
+        android:id="@+id/postButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Post"
+        android:layout_gravity="center_horizontal"
+        android:background="#FFA500"
+        android:textColor="#FFFFFF"
+        android:layout_marginTop="8dp"/>
+
+      <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Filter by category:"
+        android:layout_marginTop="16dp"
+        android:layout_marginLeft="8dp"/>
+
+      <Spinner
+        android:id="@+id/categoryFilterSpinner"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="8dp"
+        android:layout_marginRight="8dp"
+        android:layout_marginBottom="8dp"/>
+
+      <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/postsRecyclerView"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="8dp"/>
+    </LinearLayout>
+  </androidx.core.widget.NestedScrollView>
 </LinearLayout>
