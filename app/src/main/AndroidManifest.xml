@@ -26,6 +26,7 @@ android:theme="@style/Theme.SupportApp">
 
 <activity android:name=".PublicFeedActivity" />
 <activity android:name=".SignedInActivity" />
+<activity android:name=".ProfileActivity" />
   
 </application>
 
