@@ -1,0 +1,216 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:background="@color/sky_blue"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <!-- Cover Photo -->
+        <ImageView
+            android:id="@+id/img_cover_photo"
+            android:layout_width="match_parent"
+            android:layout_height="180dp"
+            android:scaleType="centerCrop"
+            android:background="@color/orange"
+            android:src="@drawable/ic_image"
+            android:contentDescription="Cover Photo" />
+
+        <!-- Crisis and Settings Buttons -->
+        <ImageButton
+            android:id="@+id/btn_crisis"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_alignParentTop="true"
+            android:layout_alignParentStart="true"
+            android:background="@drawable/circle_orange"
+            android:src="@drawable/ic_crisis"
+            android:contentDescription="Crisis" />
+
+        <ImageButton
+            android:id="@+id/btn_settings"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_alignParentTop="true"
+            android:layout_alignParentEnd="true"
+            android:background="@drawable/circle_sky_blue"
+            android:src="@drawable/ic_settings"
+            android:contentDescription="Settings" />
+
+        <!-- Profile Photo -->
+        <ImageView
+            android:id="@+id/img_profile_pic"
+            android:layout_width="100dp"
+            android:layout_height="100dp"
+            android:layout_marginTop="120dp"
+            android:layout_centerHorizontal="true"
+            android:background="@drawable/circle_white"
+            android:src="@drawable/ic_person"
+            android:elevation="4dp"
+            android:contentDescription="Profile photo" />
+
+        <!-- Profile Info Card -->
+        <LinearLayout
+            android:orientation="vertical"
+            android:layout_below="@id/img_cover_photo"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/card_white"
+            android:padding="24dp"
+            android:layout_marginTop="40dp">
+
+            <EditText
+                android:id="@+id/edit_display_name"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="Display Name"
+                android:textColor="@color/sky_blue"
+                android:textSize="20sp" />
+
+            <EditText
+                android:id="@+id/edit_actual_name"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="Actual Name (optional)"
+                android:textColor="@color/sky_blue"
+                android:textSize="16sp" />
+
+            <LinearLayout
+                android:id="@+id/layout_categories"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:paddingTop="8dp"
+                android:paddingBottom="8dp" />
+
+            <EditText
+                android:id="@+id/edit_bio"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="Bio"
+                android:textColor="@color/sky_blue"
+                android:textSize="16sp"
+                android:inputType="textMultiLine"
+                android:minLines="2" />
+
+            <EditText
+                android:id="@+id/edit_contact"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="Contact or Link"
+                android:textColor="@color/sky_blue"
+                android:textSize="16sp" />
+
+            <TextView
+                android:id="@+id/txt_member_since"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Member since: -"
+                android:textColor="@color/orange"
+                android:textStyle="italic"
+                android:paddingTop="8dp" />
+
+            <TextView
+                android:id="@+id/txt_num_posts"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Posts: -"
+                android:textColor="@color/orange"
+                android:textStyle="italic" />
+
+            <!-- Privacy Switches -->
+            <TextView
+                android:text="Privacy Controls"
+                android:textStyle="bold"
+                android:textColor="@color/sky_blue"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:paddingTop="8dp"
+                android:paddingBottom="4dp" />
+
+            <Switch android:id="@+id/switch_priv_display_name"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Show Display Name" />
+
+            <Switch android:id="@+id/switch_priv_actual_name"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Show Actual Name" />
+
+            <Switch android:id="@+id/switch_priv_profile_pic"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Show Profile Picture" />
+
+            <Switch android:id="@+id/switch_priv_cover_photo"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Show Cover Photo" />
+
+            <Switch android:id="@+id/switch_priv_categories"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Show Support Categories" />
+
+            <Switch android:id="@+id/switch_priv_bio"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Show Bio" />
+
+            <Switch android:id="@+id/switch_priv_contact"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Show Contact/Link" />
+
+            <Switch android:id="@+id/switch_priv_stats"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Show Stats" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="end"
+                android:paddingTop="8dp">
+
+                <Button
+                    android:id="@+id/btn_save"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Save"
+                    android:backgroundTint="@color/orange"
+                    android:textColor="@color/white"
+                    android:visibility="gone" />
+
+                <Button
+                    android:id="@+id/btn_cancel"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Cancel"
+                    android:backgroundTint="@color/sky_blue"
+                    android:textColor="@color/white"
+                    android:visibility="gone" />
+
+                <Button
+                    android:id="@+id/btn_edit"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Edit"
+                    android:backgroundTint="@color/orange"
+                    android:textColor="@color/white"
+                    android:layout_marginStart="8dp" />
+            </LinearLayout>
+
+            <ProgressBar
+                android:id="@+id/progressBar"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:visibility="gone" />
+        </LinearLayout>
+    </RelativeLayout>
+</ScrollView>
