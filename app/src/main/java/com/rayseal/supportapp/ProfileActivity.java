@@ -6,6 +6,7 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.provider.MediaStore;
 import android.text.InputType;
@@ -47,6 +48,7 @@ public class ProfileActivity extends AppCompatActivity {
     private boolean isEditing = false;
 
     private final String[] CATEGORIES = {"Anxiety", "Depression", "Relationships", "Sleep", "Work", "Other"};
+    private int pendingImageRequestCode = -1;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -148,15 +150,27 @@ public class ProfileActivity extends AppCompatActivity {
         }
     }
 
+    // Permission request logic for Android 13+ and below
     private void pickImage(int reqCode) {
-        if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.READ_EXTERNAL_STORAGE)
-                != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(this,
-                    new String[]{android.Manifest.permission.READ_EXTERNAL_STORAGE}, REQUEST_IMAGE_PERMISSION);
+        String permission;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            permission = android.Manifest.permission.READ_MEDIA_IMAGES;
         } else {
-            Intent intent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
-            startActivityForResult(intent, reqCode);
+            permission = android.Manifest.permission.READ_EXTERNAL_STORAGE;
         }
+
+        if (ContextCompat.checkSelfPermission(this, permission)
+                != PackageManager.PERMISSION_GRANTED) {
+            pendingImageRequestCode = reqCode;
+            ActivityCompat.requestPermissions(this, new String[]{permission}, REQUEST_IMAGE_PERMISSION);
+        } else {
+            launchImagePicker(reqCode);
+        }
+    }
+
+    private void launchImagePicker(int reqCode) {
+        Intent intent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+        startActivityForResult(intent, reqCode);
     }
 
     @Override
@@ -165,6 +179,10 @@ public class ProfileActivity extends AppCompatActivity {
         if (requestCode == REQUEST_IMAGE_PERMISSION) {
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                 Toast.makeText(this, "Permission granted, tap again to pick image.", Toast.LENGTH_SHORT).show();
+                if (pendingImageRequestCode != -1) {
+                    launchImagePicker(pendingImageRequestCode);
+                    pendingImageRequestCode = -1;
+                }
             } else {
                 Toast.makeText(this, "Permission denied.", Toast.LENGTH_SHORT).show();
             }
@@ -274,8 +292,9 @@ public class ProfileActivity extends AppCompatActivity {
         priv.showStats = switchStats.isChecked();
         p.privacy = priv;
 
+        // Upload profile photo first
         if (profilePicUri != null) {
-            uploadImage(profilePicUri, uid + "_profile.jpg", url -> {
+            uploadProfileImage(profilePicUri, uid + "_profile.jpg", url -> {
                 p.profilePictureUrl = url;
                 saveCoverPhotoIfNeeded(p, uid);
             });
@@ -284,9 +303,10 @@ public class ProfileActivity extends AppCompatActivity {
         }
     }
 
+    // Upload cover photo to cover_photos/
     private void saveCoverPhotoIfNeeded(Profile p, String uid) {
         if (coverPhotoUri != null) {
-            uploadImage(coverPhotoUri, uid + "_cover.jpg", url -> {
+            uploadCoverImage(coverPhotoUri, uid + "_cover.jpg", url -> {
                 p.coverPhotoUrl = url;
                 saveProfileToFirestore(p);
             });
@@ -295,14 +315,26 @@ public class ProfileActivity extends AppCompatActivity {
         }
     }
 
-    private void uploadImage(Uri uri, String filename, OnImageUploadListener listener) {
+    // Profile photo upload (profile_images/)
+    private void uploadProfileImage(Uri uri, String filename, OnImageUploadListener listener) {
         StorageReference ref = storageRef.child("profile_images/" + filename);
         ref.putFile(uri)
-                .addOnSuccessListener(taskSnapshot -> ref.getDownloadUrl().addOnSuccessListener(uri1 -> listener.onSuccess(uri1.toString())))
-                .addOnFailureListener(e -> {
-                    Toast.makeText(this, "Failed to upload image.", Toast.LENGTH_SHORT).show();
-                    listener.onSuccess(""); // Continue with blank
-                });
+            .addOnSuccessListener(taskSnapshot -> ref.getDownloadUrl().addOnSuccessListener(uri1 -> listener.onSuccess(uri1.toString())))
+            .addOnFailureListener(e -> {
+                Toast.makeText(this, "Failed to upload profile photo.", Toast.LENGTH_SHORT).show();
+                listener.onSuccess(""); // Continue with blank
+            });
+    }
+
+    // Cover photo upload (cover_photos/)
+    private void uploadCoverImage(Uri uri, String filename, OnImageUploadListener listener) {
+        StorageReference ref = storageRef.child("cover_photos/" + filename);
+        ref.putFile(uri)
+            .addOnSuccessListener(taskSnapshot -> ref.getDownloadUrl().addOnSuccessListener(uri1 -> listener.onSuccess(uri1.toString())))
+            .addOnFailureListener(e -> {
+                Toast.makeText(this, "Failed to upload cover photo.", Toast.LENGTH_SHORT).show();
+                listener.onSuccess(""); // Continue with blank
+            });
     }
 
     private void saveProfileToFirestore(Profile p) {
@@ -320,39 +352,4 @@ public class ProfileActivity extends AppCompatActivity {
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        if (resultCode == Activity.RESULT_OK && data != null && data.getData() != null) {
-            if (requestCode == PICK_PROFILE_PIC) {
-                profilePicUri = data.getData();
-                imgProfilePic.setImageURI(profilePicUri);
-            } else if (requestCode == PICK_COVER_PHOTO) {
-                coverPhotoUri = data.getData();
-                imgCoverPhoto.setImageURI(coverPhotoUri);
-            }
-        }
-    }
-
-    private interface OnImageUploadListener {
-        void onSuccess(String url);
-    }
-
-    private void showCrisisDialog() {
-        String country = Locale.getDefault().getCountry();
-        String messageUK = "Immediate help (UK):\n\n" +
-                "Call 999 in an emergency\n" +
-                "Call NHS 111 for urgent advice\n" +
-                "Text 'SHOUT' to 85258\n" +
-                "Samaritans: 116 123\n";
-        String message = country.equals("GB") ? messageUK :
-                "For help, please reach out to local emergency and support services.";
-        new AlertDialog.Builder(this)
-                .setTitle("Crisis Support")
-                .setMessage(message)
-                .setPositiveButton("OK", null)
-                .show();
-    }
-
-    private void openSettings() {
-        Toast.makeText(this, "Settings coming soon", Toast.LENGTH_SHORT).show();
-    }
-}
+        super.onActivityResult
