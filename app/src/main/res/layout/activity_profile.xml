@@ -238,59 +238,67 @@
                 android:paddingBottom="4dp"/>
 
             <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:paddingBottom="12dp">
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:paddingBottom="12dp">
 
-                <Switch
-                    android:id="@+id/switch_priv_display_name"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="Show Display Name"/>
+    <Switch
+        android:id="@+id/switch_priv_display_name"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Show Display Name"
+        android:textColor="@color/sky_blue"/>
 
-                <Switch
-                    android:id="@+id/switch_priv_actual_name"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="Show Actual Name"/>
+    <Switch
+        android:id="@+id/switch_priv_actual_name"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Show Actual Name"
+        android:textColor="@color/sky_blue"/>
 
-                <Switch
-                    android:id="@+id/switch_priv_profile_pic"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="Show Profile Picture"/>
+    <Switch
+        android:id="@+id/switch_priv_profile_pic"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Show Profile Picture"
+        android:textColor="@color/sky_blue"/>
 
-                <Switch
-                    android:id="@+id/switch_priv_cover_photo"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="Show Cover Photo"/>
+    <Switch
+        android:id="@+id/switch_priv_cover_photo"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Show Cover Photo"
+        android:textColor="@color/sky_blue"/>
 
-                <Switch
-                    android:id="@+id/switch_priv_categories"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="Show Support Categories"/>
+    <Switch
+        android:id="@+id/switch_priv_categories"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Show Support Categories"
+        android:textColor="@color/sky_blue"/>
 
-                <Switch
-                    android:id="@+id/switch_priv_bio"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="Show Bio"/>
+    <Switch
+        android:id="@+id/switch_priv_bio"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Show Bio"
+        android:textColor="@color/sky_blue"/>
 
-                <Switch
-                    android:id="@+id/switch_priv_contact"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="Show Contact/Link"/>
+    <Switch
+        android:id="@+id/switch_priv_contact"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Show Contact/Link"
+        android:textColor="@color/sky_blue"/>
 
-                <Switch
-                    android:id="@+id/switch_priv_stats"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="Show Stats"/>
-            </LinearLayout>
+    <Switch
+        android:id="@+id/switch_priv_stats"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Show Stats"
+        android:textColor="@color/sky_blue"/>
+</LinearLayout>
 
             <!-- Edit/Save/Cancel Buttons -->
             <LinearLayout
@@ -335,3 +343,4 @@
         </LinearLayout>
     </LinearLayout>
 </ScrollView>
+
