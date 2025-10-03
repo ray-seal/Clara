@@ -330,4 +330,3 @@ public class PublicFeedActivity extends AppCompatActivity {
         startActivity(intent);
     }
 }
-}
