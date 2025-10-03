@@ -28,7 +28,7 @@ import android.widget.GridLayout;
 
 public class PublicFeedActivity extends AppCompatActivity {
     private EditText postEditText;
-    private Button postButton, crisisButton, selectImageButton;
+    private Button postButton, crisisButton, selectImageButton, chatButton;
     private GridLayout categoryCheckboxes;
     private Spinner categoryFilterSpinner;
     private ImageView postImagePreview;
@@ -58,6 +58,7 @@ public class PublicFeedActivity extends AppCompatActivity {
         categoryCheckboxes = findViewById(R.id.categoryCheckboxes);
         postButton = findViewById(R.id.postButton);
         crisisButton = findViewById(R.id.crisisButton);
+        chatButton = findViewById(R.id.chatButton);
         categoryFilterSpinner = findViewById(R.id.categoryFilterSpinner);
         postsRecyclerView = findViewById(R.id.postsRecyclerView);
         postImagePreview = findViewById(R.id.postImagePreview);
@@ -100,6 +101,7 @@ public class PublicFeedActivity extends AppCompatActivity {
 
         postButton.setOnClickListener(v -> submitPost());
         crisisButton.setOnClickListener(v -> showCrisisDialog());
+        chatButton.setOnClickListener(v -> openChatRooms());
         selectImageButton.setOnClickListener(v -> checkImagePermissionAndOpenPicker());
 
         loadPosts();
@@ -319,4 +321,13 @@ public class PublicFeedActivity extends AppCompatActivity {
                 .setPositiveButton("OK", null)
                 .show();
     }
+
+    /**
+     * Open the chat rooms activity.
+     */
+    private void openChatRooms() {
+        Intent intent = new Intent(this, ChatRoomListActivity.class);
+        startActivity(intent);
+    }
+}
 }
