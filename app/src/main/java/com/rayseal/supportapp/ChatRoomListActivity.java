@@ -48,6 +48,10 @@ public class ChatRoomListActivity extends AppCompatActivity {
         firestore = FirebaseFirestore.getInstance();
 
         if (mAuth.getCurrentUser() == null) {
+            Toast.makeText(this, "Please sign in to access chat", Toast.LENGTH_SHORT).show();
+            Intent intent = new Intent(this, MainActivity.class);
+            intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
+            startActivity(intent);
             finish();
             return;
         }

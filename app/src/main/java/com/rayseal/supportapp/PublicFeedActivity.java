@@ -326,6 +326,11 @@ public class PublicFeedActivity extends AppCompatActivity {
      * Open the chat rooms activity.
      */
     private void openChatRooms() {
+        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+        if (user == null) {
+            Toast.makeText(this, "Please sign in to access chat", Toast.LENGTH_SHORT).show();
+            return;
+        }
         Intent intent = new Intent(this, ChatRoomListActivity.class);
         startActivity(intent);
     }
