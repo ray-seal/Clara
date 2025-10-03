@@ -9,6 +9,7 @@ public class PrivacySettings {
     public boolean showBio = true;
     public boolean showContact = false;
     public boolean showStats = true;
+    public boolean allowPrivateMessages = true;
 
     public PrivacySettings() {}
 }

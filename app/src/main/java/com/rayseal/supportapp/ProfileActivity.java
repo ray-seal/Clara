@@ -39,7 +39,7 @@ public class ProfileActivity extends AppCompatActivity {
     private LinearLayout categoriesLayout;
     private TextView memberSinceText, numPostsText;
     private Switch switchDisplayName, switchActualName, switchProfilePic, switchCoverPhoto,
-            switchCategories, switchBio, switchContact, switchStats;
+            switchCategories, switchBio, switchContact, switchStats, switchPrivateMessages;
     private Button btnSave, btnCancel, btnEdit;
     private ProgressBar progressBar;
 
@@ -82,6 +82,7 @@ public class ProfileActivity extends AppCompatActivity {
         switchBio = findViewById(R.id.switch_priv_bio);
         switchContact = findViewById(R.id.switch_priv_contact);
         switchStats = findViewById(R.id.switch_priv_stats);
+        switchPrivateMessages = findViewById(R.id.switch_priv_messages);
 
         btnSave = findViewById(R.id.btn_save);
         btnCancel = findViewById(R.id.btn_cancel);
@@ -258,6 +259,7 @@ public class ProfileActivity extends AppCompatActivity {
         switchBio.setChecked(priv.showBio);
         switchContact.setChecked(priv.showContact);
         switchStats.setChecked(priv.showStats);
+        switchPrivateMessages.setChecked(priv.allowPrivateMessages);
     }
 
     private void saveProfile() {
@@ -288,6 +290,7 @@ public class ProfileActivity extends AppCompatActivity {
         priv.showBio = switchBio.isChecked();
         priv.showContact = switchContact.isChecked();
         priv.showStats = switchStats.isChecked();
+        priv.allowPrivateMessages = switchPrivateMessages.isChecked();
         p.privacy = priv;
 
         // Upload profile photo first

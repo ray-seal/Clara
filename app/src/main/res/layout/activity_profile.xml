@@ -298,6 +298,13 @@
         android:layout_height="wrap_content"
         android:text="Show Stats"
         android:textColor="@color/sky_blue"/>
+
+    <Switch
+        android:id="@+id/switch_priv_messages"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Allow Private Messages"
+        android:textColor="@color/sky_blue"/>
 </LinearLayout>
 
             <!-- Edit/Save/Cancel Buttons -->
