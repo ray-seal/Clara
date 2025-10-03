@@ -32,12 +32,16 @@
             android:textStyle="bold"
             android:gravity="center" />
 
-        <ImageView
+        <Button
             android:id="@+id/btnCreateRoom"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:padding="8dp"
-            android:src="@drawable/ic_add_circle"
+            android:layout_width="wrap_content"
+            android:layout_height="36dp"
+            android:paddingLeft="12dp"
+            android:paddingRight="12dp"
+            android:text="Create Room"
+            android:textSize="12sp"
+            android:textColor="#FFFFFF"
+            android:background="@color/orange"
             android:contentDescription="Create Room" />
     </LinearLayout>
 

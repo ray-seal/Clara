@@ -80,6 +80,8 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:hint="Type a message..."
+            android:textColor="#000000"
+            android:textColorHint="#666666"
             android:padding="12dp"
             android:background="@drawable/card_white"
             android:maxLines="4" />
