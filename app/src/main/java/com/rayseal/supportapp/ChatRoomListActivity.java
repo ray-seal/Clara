@@ -25,16 +25,16 @@ public class ChatRoomListActivity extends AppCompatActivity {
     private ChatRoomAdapter adapter;
     private ProgressBar progressBar;
     private Button btnTopicRooms, btnPublicRooms, btnPrivateRooms;
-    
+
     private FirebaseAuth mAuth;
     private DatabaseReference mDatabase;
     private FirebaseFirestore firestore;
-    
+
     private String currentUserId;
     private String currentFilter = "topic"; // topic, public, or private
-    
+
     private static final String[] TOPIC_ROOMS = {
-        "Anxiety", "Depression", "Insomnia", 
+        "Anxiety", "Depression", "Insomnia",
         "Gender Dysphoria", "Disability", "Addiction"
     };
 
@@ -46,7 +46,7 @@ public class ChatRoomListActivity extends AppCompatActivity {
         mAuth = FirebaseAuth.getInstance();
         mDatabase = FirebaseDatabase.getInstance().getReference();
         firestore = FirebaseFirestore.getInstance();
-        
+
         if (mAuth.getCurrentUser() == null) {
             finish();
             return;
@@ -73,19 +73,21 @@ public class ChatRoomListActivity extends AppCompatActivity {
 
     private void setupRecyclerView() {
         adapter = new ChatRoomAdapter(room -> {
-            // Check if user can access private rooms
-            if (room.isPrivate && !room.members.contains(currentUserId)) {
-                Toast.makeText(this, "You don't have access to this private room", Toast.LENGTH_SHORT).show();
-                return;
+            // Only private rooms require the user to be a member
+            if (room.isPrivate) {
+                if (room.members == null || !room.members.contains(currentUserId)) {
+                    Toast.makeText(this, "You don't have access to this private room", Toast.LENGTH_SHORT).show();
+                    return;
+                }
             }
-            
+            // Public and topic rooms: anyone can enter
             Intent intent = new Intent(ChatRoomListActivity.this, ChatRoomActivity.class);
             intent.putExtra("roomId", room.roomId);
             intent.putExtra("roomName", room.roomName);
             intent.putExtra("topic", room.topic);
             startActivity(intent);
         });
-        
+
         roomsRecyclerView.setLayoutManager(new LinearLayoutManager(this));
         roomsRecyclerView.setAdapter(adapter);
     }
@@ -108,7 +110,7 @@ public class ChatRoomListActivity extends AppCompatActivity {
             updateButtonStyles();
             loadRooms("private");
         });
-        
+
         updateButtonStyles();
     }
 
@@ -134,21 +136,21 @@ public class ChatRoomListActivity extends AppCompatActivity {
      */
     private void initializeTopicRooms() {
         DatabaseReference topicRoomsRef = mDatabase.child("chatRooms");
-        
+
         for (String topic : TOPIC_ROOMS) {
             String roomId = "topic_" + topic.toLowerCase().replace(" ", "_");
-            
+
             topicRoomsRef.child(roomId).addListenerForSingleValueEvent(new ValueEventListener() {
                 @Override
                 public void onDataChange(@NonNull DataSnapshot snapshot) {
                     if (!snapshot.exists()) {
                         // Create the topic room
                         ChatRoom room = new ChatRoom(
-                            roomId,
-                            topic + " Support",
-                            topic,
-                            false,
-                            "system"
+                                roomId,
+                                topic + " Support",
+                                topic,
+                                false,
+                                "system"
                         );
                         room.description = "A safe space to discuss " + topic.toLowerCase() + " and related topics.";
                         topicRoomsRef.child(roomId).setValue(room);
@@ -168,10 +170,10 @@ public class ChatRoomListActivity extends AppCompatActivity {
      */
     private void loadRooms(String filter) {
         progressBar.setVisibility(View.VISIBLE);
-        
+
         DatabaseReference roomsRef = mDatabase.child("chatRooms");
         Query query;
-        
+
         if (filter.equals("topic")) {
             // Load topic-based rooms
             List<String> topicIds = new ArrayList<>();
@@ -192,7 +194,7 @@ public class ChatRoomListActivity extends AppCompatActivity {
     private void loadSpecificRooms(List<String> roomIds) {
         List<ChatRoom> rooms = new ArrayList<>();
         final int[] loadedCount = {0};
-        
+
         for (String roomId : roomIds) {
             mDatabase.child("chatRooms").child(roomId).addListenerForSingleValueEvent(new ValueEventListener() {
                 @Override
@@ -202,7 +204,7 @@ public class ChatRoomListActivity extends AppCompatActivity {
                         rooms.add(room);
                     }
                     loadedCount[0]++;
-                    
+
                     if (loadedCount[0] == roomIds.size()) {
                         adapter.setRooms(rooms);
                         progressBar.setVisibility(View.GONE);
@@ -250,7 +252,7 @@ public class ChatRoomListActivity extends AppCompatActivity {
                 List<ChatRoom> rooms = new ArrayList<>();
                 for (DataSnapshot roomSnapshot : snapshot.getChildren()) {
                     ChatRoom room = roomSnapshot.getValue(ChatRoom.class);
-                    if (room != null && room.isPrivate && room.members.contains(currentUserId)) {
+                    if (room != null && room.isPrivate && room.members != null && room.members.contains(currentUserId)) {
                         rooms.add(room);
                     }
                 }
@@ -318,7 +320,7 @@ public class ChatRoomListActivity extends AppCompatActivity {
         if (roomId == null) return;
 
         ChatRoom room = new ChatRoom(roomId, roomName, topic, isPrivate, currentUserId);
-        
+
         mDatabase.child("chatRooms").child(roomId).setValue(room)
             .addOnSuccessListener(aVoid -> {
                 Toast.makeText(this, "Room created successfully!", Toast.LENGTH_SHORT).show();
