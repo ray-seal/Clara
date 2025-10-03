@@ -28,3 +28,13 @@ jobs:
       with:
         name: app-debug-apk
         path: app/build/outputs/apk/debug/app-debug.apk
+
+    # Always try to upload the problems report if it exists (will run even if previous steps fail)
+    - name: Upload Gradle Problems Report
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: gradle-problems-report
+        path: |
+          build/reports/problems/problems-report.html
+          app/build/reports/problems/problems-report.html
