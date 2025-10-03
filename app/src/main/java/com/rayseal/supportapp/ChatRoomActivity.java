@@ -9,7 +9,6 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.*;
-import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import java.util.ArrayList;
 import java.util.List;
@@ -24,17 +23,17 @@ public class ChatRoomActivity extends AppCompatActivity {
     private Button btnSend;
     private TextView roomNameText, roomTopicText;
     private ChatMessageAdapter adapter;
-    
+
     private FirebaseAuth mAuth;
     private DatabaseReference mDatabase;
     private FirebaseFirestore firestore;
-    
+
     private String roomId;
     private String roomName;
     private String topic;
     private String currentUserId;
     private String currentUserName = "Anonymous";
-    
+
     private DatabaseReference messagesRef;
     private ChildEventListener messagesListener;
 
@@ -46,8 +45,9 @@ public class ChatRoomActivity extends AppCompatActivity {
         mAuth = FirebaseAuth.getInstance();
         mDatabase = FirebaseDatabase.getInstance().getReference();
         firestore = FirebaseFirestore.getInstance();
-        
+
         if (mAuth.getCurrentUser() == null) {
+            Toast.makeText(this, "User not signed in", Toast.LENGTH_SHORT).show();
             finish();
             return;
         }
@@ -59,6 +59,7 @@ public class ChatRoomActivity extends AppCompatActivity {
         topic = getIntent().getStringExtra("topic");
 
         if (roomId == null || roomId.isEmpty()) {
+            Toast.makeText(this, "No room ID passed to ChatRoomActivity", Toast.LENGTH_SHORT).show();
             finish();
             return;
         }
@@ -67,7 +68,31 @@ public class ChatRoomActivity extends AppCompatActivity {
         loadUserProfile();
         setupRecyclerView();
         setupMessageListener();
-        joinRoom();
+
+        // Only join private rooms (public/topic rooms are open to all)
+        mDatabase.child("chatRooms").child(roomId).addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                ChatRoom room = snapshot.getValue(ChatRoom.class);
+                if (room == null) {
+                    Toast.makeText(ChatRoomActivity.this, "Room not found", Toast.LENGTH_SHORT).show();
+                    finish();
+                    return;
+                }
+                // Only check/add membership for private rooms
+                if (room.isPrivate) {
+                    List<String> members = room.members != null ? room.members : new ArrayList<>();
+                    if (!members.contains(currentUserId)) {
+                        mDatabase.child("chatRooms").child(roomId).child("members").push().setValue(currentUserId);
+                    }
+                }
+            }
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+                Toast.makeText(ChatRoomActivity.this, "Room data error", Toast.LENGTH_SHORT).show();
+                finish();
+            }
+        });
     }
 
     private void initializeViews() {
@@ -82,7 +107,7 @@ public class ChatRoomActivity extends AppCompatActivity {
 
         findViewById(R.id.btnBack).setOnClickListener(v -> finish());
         findViewById(R.id.btnRoomInfo).setOnClickListener(v -> showRoomInfo());
-        
+
         btnSend.setOnClickListener(v -> sendMessage());
     }
 
@@ -111,7 +136,7 @@ public class ChatRoomActivity extends AppCompatActivity {
      */
     private void setupMessageListener() {
         messagesRef = mDatabase.child("messages").child(roomId);
-        
+
         messagesListener = new ChildEventListener() {
             @Override
             public void onChildAdded(@NonNull DataSnapshot snapshot, String previousChildName) {
@@ -136,35 +161,8 @@ public class ChatRoomActivity extends AppCompatActivity {
                 Toast.makeText(ChatRoomActivity.this, "Error loading messages", Toast.LENGTH_SHORT).show();
             }
         };
-        
+
         messagesRef.addChildEventListener(messagesListener);
-    }
-
-    /**
-     * Join the room by adding current user to members list.
-     */
-    private void joinRoom() {
-        DatabaseReference roomRef = mDatabase.child("chatRooms").child(roomId).child("members");
-        roomRef.addListenerForSingleValueEvent(new ValueEventListener() {
-            @Override
-            public void onDataChange(@NonNull DataSnapshot snapshot) {
-                boolean isMember = false;
-                for (DataSnapshot memberSnapshot : snapshot.getChildren()) {
-                    if (currentUserId.equals(memberSnapshot.getValue(String.class))) {
-                        isMember = true;
-                        break;
-                    }
-                }
-                
-                if (!isMember) {
-                    // Add user to members
-                    roomRef.push().setValue(currentUserId);
-                }
-            }
-
-            @Override
-            public void onCancelled(@NonNull DatabaseError error) {}
-        });
     }
 
     /**
@@ -172,22 +170,22 @@ public class ChatRoomActivity extends AppCompatActivity {
      */
     private void sendMessage() {
         String content = messageInput.getText().toString().trim();
-        
+
         if (content.isEmpty()) {
             Toast.makeText(this, "Please enter a message", Toast.LENGTH_SHORT).show();
             return;
         }
 
         ChatMessage message = new ChatMessage(currentUserId, currentUserName, content, roomId);
-        
+
         String messageId = messagesRef.push().getKey();
         if (messageId != null) {
             message.messageId = messageId;
-            
+
             messagesRef.child(messageId).setValue(message)
                 .addOnSuccessListener(aVoid -> {
                     messageInput.setText("");
-                    
+
                     // Update room's last message
                     DatabaseReference roomRef = mDatabase.child("chatRooms").child(roomId);
                     roomRef.child("lastMessage").setValue(content);
@@ -212,11 +210,11 @@ public class ChatRoomActivity extends AppCompatActivity {
                                 "Topic: " + room.topic + "\n" +
                                 "Type: " + (room.isPrivate ? "Private" : "Public") + "\n" +
                                 "Members: " + (room.members != null ? room.members.size() : 0);
-                    
+
                     if (room.description != null && !room.description.isEmpty()) {
                         info += "\n\nDescription: " + room.description;
                     }
-                    
+
                     new android.app.AlertDialog.Builder(ChatRoomActivity.this)
                         .setTitle("Room Information")
                         .setMessage(info)
