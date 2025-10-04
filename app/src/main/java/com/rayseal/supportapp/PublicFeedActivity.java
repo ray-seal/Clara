@@ -324,8 +324,10 @@ public class PublicFeedActivity extends AppCompatActivity {
     }
 
     private void uploadPostToFirestore(Map<String, Object> post) {
+        Log.d(TAG, "Uploading post to Firestore: " + post.toString());
         db.collection("posts").add(post)
             .addOnSuccessListener(documentReference -> {
+                Log.d(TAG, "Post uploaded successfully with ID: " + documentReference.getId());
                 postEditText.setText("");
                 for (CheckBox cb : categoryCheckBoxesList) cb.setChecked(false);
                 imageUri = null;
@@ -341,14 +343,18 @@ public class PublicFeedActivity extends AppCompatActivity {
     }
 
     private void loadPosts() {
-        Query query = db.collection("posts").orderBy("timestamp", Query.Direction.DESCENDING);
+        // First try with timestamp ordering, then fallback to no ordering if that fails
+        Query query = db.collection("posts");
         if (!selectedFilter.equals("All")) {
             query = query.whereArrayContains("categories", selectedFilter);
         }
 
+        // Try to order by timestamp, but handle cases where some documents don't have timestamps
         query.get().addOnCompleteListener(task -> {
             if (task.isSuccessful()) {
                 posts.clear();
+                List<Post> tempPosts = new ArrayList<>();
+                
                 for (QueryDocumentSnapshot doc : task.getResult()) {
                     try {
                         String postId = doc.getId();
@@ -400,15 +406,25 @@ public class PublicFeedActivity extends AppCompatActivity {
                         Long commentCountLong = doc.getLong("commentCount");
                         post.commentCount = commentCountLong != null ? commentCountLong.intValue() : 0;
                         
-                        posts.add(post);
+                        tempPosts.add(post);
+                        
+                        Log.d(TAG, "Loaded post: " + postId + " - " + content.substring(0, Math.min(content.length(), 50)));
+                        
                     } catch (Exception e) {
                         Log.e(TAG, "Error parsing post: " + e.getMessage(), e);
                         // Continue with next post instead of crashing
                     }
                 }
+                
+                // Sort posts by timestamp (newest first)
+                tempPosts.sort((p1, p2) -> Long.compare(p2.timestamp, p1.timestamp));
+                posts.addAll(tempPosts);
+                
+                Log.d(TAG, "Total posts loaded: " + posts.size());
                 postAdapter.notifyDataSetChanged();
             } else {
                 Log.e(TAG, "Error loading posts: ", task.getException());
+                Toast.makeText(this, "Error loading posts. Please try again.", Toast.LENGTH_SHORT).show();
             }
         });
     }
