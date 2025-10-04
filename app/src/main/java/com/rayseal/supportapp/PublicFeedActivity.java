@@ -23,6 +23,7 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
+import com.google.firebase.Timestamp;
 import java.util.*;
 import android.widget.GridLayout;
 
@@ -104,7 +105,26 @@ public class PublicFeedActivity extends AppCompatActivity {
         chatButton.setOnClickListener(v -> openChatRooms());
         selectImageButton.setOnClickListener(v -> checkImagePermissionAndOpenPicker());
 
-        loadPosts();
+        // Test Firestore connectivity before loading posts
+        testFirestoreConnection();
+    }
+    
+    private void testFirestoreConnection() {
+        Log.d(TAG, "Testing Firestore connection...");
+        
+        // Simple connectivity test
+        db.collection("posts").limit(1).get()
+            .addOnSuccessListener(querySnapshot -> {
+                Log.d(TAG, "Firestore connection successful");
+                loadPosts();
+            })
+            .addOnFailureListener(e -> {
+                Log.e(TAG, "Firestore connection failed: " + e.getMessage(), e);
+                Toast.makeText(this, "Connection error: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                
+                // Still try to load posts in case it's a temporary issue
+                loadPosts();
+            });
     }
 
     private void setupCategoryCheckboxes() {
@@ -161,9 +181,31 @@ public class PublicFeedActivity extends AppCompatActivity {
     }
 
     private void setupRecyclerView() {
+        Log.d(TAG, "Setting up RecyclerView");
+        
+        if (postsRecyclerView == null) {
+            Log.e(TAG, "postsRecyclerView is null! Check if R.id.postsRecyclerView exists in layout");
+            return;
+        }
+        
+        if (posts == null) {
+            posts = new ArrayList<>();
+            Log.d(TAG, "Initialized empty posts list");
+        }
+        
         postAdapter = new PostAdapter(posts);
-        postsRecyclerView.setLayoutManager(new LinearLayoutManager(this));
+        LinearLayoutManager layoutManager = new LinearLayoutManager(this);
+        
+        // Important: Disable nested scrolling since RecyclerView is inside NestedScrollView
+        postsRecyclerView.setNestedScrollingEnabled(false);
+        
+        postsRecyclerView.setLayoutManager(layoutManager);
         postsRecyclerView.setAdapter(postAdapter);
+        
+        // Force the RecyclerView to be visible and have proper height
+        postsRecyclerView.setVisibility(View.VISIBLE);
+        
+        Log.d(TAG, "RecyclerView setup complete with " + posts.size() + " posts");
     }
 
     // --- Image Permission Logic ---
@@ -343,20 +385,43 @@ public class PublicFeedActivity extends AppCompatActivity {
     }
 
     private void loadPosts() {
-        // First try with timestamp ordering, then fallback to no ordering if that fails
+        Log.d(TAG, "Starting to load posts with filter: " + selectedFilter);
+        
+        // Check if user is authenticated
+        FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
+        Log.d(TAG, "Current user: " + (currentUser != null ? currentUser.getUid() : "null"));
+        
+        // Clear existing posts
+        posts.clear();
+        postAdapter.notifyDataSetChanged();
+        
+        // Build query
         Query query = db.collection("posts");
         if (!selectedFilter.equals("All")) {
             query = query.whereArrayContains("categories", selectedFilter);
+            Log.d(TAG, "Applying category filter: " + selectedFilter);
         }
 
-        // Try to order by timestamp, but handle cases where some documents don't have timestamps
+        Log.d(TAG, "Executing Firestore query...");
         query.get().addOnCompleteListener(task -> {
             if (task.isSuccessful()) {
-                posts.clear();
-                List<Post> tempPosts = new ArrayList<>();
+                QuerySnapshot result = task.getResult();
+                Log.d(TAG, "Query successful. Document count: " + (result != null ? result.size() : 0));
                 
-                for (QueryDocumentSnapshot doc : task.getResult()) {
+                if (result == null || result.isEmpty()) {
+                    Log.w(TAG, "No documents found in posts collection");
+                    Toast.makeText(this, "No posts found. Try creating one!", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                
+                List<Post> tempPosts = new ArrayList<>();
+                int successCount = 0;
+                int errorCount = 0;
+                
+                for (QueryDocumentSnapshot doc : result) {
                     try {
+                        Log.d(TAG, "Processing document: " + doc.getId());
+                        
                         String postId = doc.getId();
                         String content = doc.getString("content");
                         List<String> cats = (List<String>) doc.get("categories");
@@ -364,8 +429,21 @@ public class PublicFeedActivity extends AppCompatActivity {
                         String userId = doc.getString("userId");
                         String authorName = doc.getString("authorName");
                         String authorProfilePicture = doc.getString("authorProfilePicture");
-                        Long timestampLong = doc.getLong("timestamp");
-                        long timestamp = timestampLong != null ? timestampLong : System.currentTimeMillis();
+                        
+                        // Handle timestamp - could be server timestamp (null) or long value
+                        long timestamp = System.currentTimeMillis();
+                        Object timestampObj = doc.get("timestamp");
+                        if (timestampObj instanceof com.google.firebase.Timestamp) {
+                            timestamp = ((com.google.firebase.Timestamp) timestampObj).getSeconds() * 1000;
+                        } else if (timestampObj instanceof Long) {
+                            timestamp = (Long) timestampObj;
+                        }
+                        
+                        // Validate required fields
+                        if (content == null || content.trim().isEmpty()) {
+                            Log.w(TAG, "Skipping post " + postId + " - empty content");
+                            continue;
+                        }
                         
                         // Handle backward compatibility for old posts
                         if (authorName == null || authorName.isEmpty()) {
@@ -376,6 +454,9 @@ public class PublicFeedActivity extends AppCompatActivity {
                         }
                         if (cats == null) {
                             cats = new ArrayList<>();
+                        }
+                        if (userId == null) {
+                            userId = "";
                         }
                         
                         Post post = new Post(postId, content, cats, imageUrl, userId, authorName, authorProfilePicture, timestamp);
@@ -407,24 +488,50 @@ public class PublicFeedActivity extends AppCompatActivity {
                         post.commentCount = commentCountLong != null ? commentCountLong.intValue() : 0;
                         
                         tempPosts.add(post);
+                        successCount++;
                         
-                        Log.d(TAG, "Loaded post: " + postId + " - " + content.substring(0, Math.min(content.length(), 50)));
+                        Log.d(TAG, "Successfully loaded post: " + postId + " - " + content.substring(0, Math.min(content.length(), 50)));
                         
                     } catch (Exception e) {
-                        Log.e(TAG, "Error parsing post: " + e.getMessage(), e);
+                        errorCount++;
+                        Log.e(TAG, "Error parsing post " + doc.getId() + ": " + e.getMessage(), e);
                         // Continue with next post instead of crashing
                     }
                 }
+                
+                Log.d(TAG, "Post processing complete. Success: " + successCount + ", Errors: " + errorCount);
                 
                 // Sort posts by timestamp (newest first)
                 tempPosts.sort((p1, p2) -> Long.compare(p2.timestamp, p1.timestamp));
                 posts.addAll(tempPosts);
                 
-                Log.d(TAG, "Total posts loaded: " + posts.size());
-                postAdapter.notifyDataSetChanged();
+                Log.d(TAG, "Total posts loaded and added to list: " + posts.size());
+                
+                // Update UI on main thread
+                runOnUiThread(() -> {
+                    postAdapter.notifyDataSetChanged();
+                    Log.d(TAG, "UI updated - postAdapter.notifyDataSetChanged() called");
+                    
+                    if (posts.isEmpty()) {
+                        Toast.makeText(this, "No posts to display. Try creating one!", Toast.LENGTH_SHORT).show();
+                    } else {
+                        Toast.makeText(this, "Loaded " + posts.size() + " post(s)", Toast.LENGTH_SHORT).show();
+                    }
+                });
+                
             } else {
-                Log.e(TAG, "Error loading posts: ", task.getException());
-                Toast.makeText(this, "Error loading posts. Please try again.", Toast.LENGTH_SHORT).show();
+                Exception exception = task.getException();
+                Log.e(TAG, "Error loading posts: " + (exception != null ? exception.getMessage() : "Unknown error"), exception);
+                
+                // Show detailed error to user
+                String errorMessage = "Error loading posts: ";
+                if (exception != null) {
+                    errorMessage += exception.getMessage();
+                } else {
+                    errorMessage += "Unknown error occurred";
+                }
+                
+                Toast.makeText(this, errorMessage, Toast.LENGTH_LONG).show();
             }
         });
     }
