@@ -7,6 +7,7 @@ import android.view.View;
 import android.widget.*;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import com.google.firebase.auth.FirebaseAuth;
@@ -120,18 +121,18 @@ public class ChatRoomListActivity extends AppCompatActivity {
 
     private void updateButtonStyles() {
         // Reset all buttons
-        btnTopicRooms.setBackgroundTintList(getColorStateList(android.R.color.darker_gray));
-        btnPublicRooms.setBackgroundTintList(getColorStateList(android.R.color.darker_gray));
-        btnPrivateRooms.setBackgroundTintList(getColorStateList(android.R.color.darker_gray));
+        btnTopicRooms.setBackgroundTintList(ContextCompat.getColorStateList(this, android.R.color.darker_gray));
+        btnPublicRooms.setBackgroundTintList(ContextCompat.getColorStateList(this, android.R.color.darker_gray));
+        btnPrivateRooms.setBackgroundTintList(ContextCompat.getColorStateList(this, android.R.color.darker_gray));
 
         // Highlight selected button
-        int activeColor = getResources().getColor(android.R.color.holo_blue_light, null);
+        int activeColor = ContextCompat.getColor(this, android.R.color.holo_blue_light);
         if (currentFilter.equals("topic")) {
-            btnTopicRooms.setBackgroundTintList(getColorStateList(android.R.color.holo_blue_light));
+            btnTopicRooms.setBackgroundTintList(ContextCompat.getColorStateList(this, android.R.color.holo_blue_light));
         } else if (currentFilter.equals("public")) {
-            btnPublicRooms.setBackgroundTintList(getColorStateList(android.R.color.holo_blue_light));
+            btnPublicRooms.setBackgroundTintList(ContextCompat.getColorStateList(this, android.R.color.holo_blue_light));
         } else {
-            btnPrivateRooms.setBackgroundTintList(getColorStateList(android.R.color.holo_blue_light));
+            btnPrivateRooms.setBackgroundTintList(ContextCompat.getColorStateList(this, android.R.color.holo_blue_light));
         }
     }
 
