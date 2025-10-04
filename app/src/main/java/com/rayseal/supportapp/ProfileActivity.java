@@ -41,12 +41,13 @@ public class ProfileActivity extends AppCompatActivity {
     private Switch switchDisplayName, switchActualName, switchProfilePic, switchCoverPhoto,
             switchCategories, switchBio, switchContact, switchStats, switchPrivateMessages,
             switchFriendRequests, switchChatInvites;
-    private Button btnSave, btnCancel, btnEdit;
+    private Button btnSave, btnCancel, btnEdit, btnAddFriend;
     private ProgressBar progressBar;
 
     private Uri profilePicUri, coverPhotoUri;
     private Profile userProfile;
     private boolean isEditing = false;
+    private String viewingUserId; // ID of user whose profile we're viewing (null if viewing own profile)
 
     private final String[] CATEGORIES = {"Anxiety", "Depression", "Relationships", "Sleep", "Work", "Other"};
     private int pendingImageRequestCode = -1;
@@ -90,8 +91,13 @@ public class ProfileActivity extends AppCompatActivity {
         btnSave = findViewById(R.id.btn_save);
         btnCancel = findViewById(R.id.btn_cancel);
         btnEdit = findViewById(R.id.btn_edit);
+        btnAddFriend = findViewById(R.id.btn_add_friend);
 
         progressBar = findViewById(R.id.progressBar);
+
+        // Check if we're viewing another user's profile
+        Intent intent = getIntent();
+        viewingUserId = intent.getStringExtra("userId");
 
         // Top bar buttons
         findViewById(R.id.btn_crisis).setOnClickListener(v -> showCrisisDialog());
@@ -105,6 +111,7 @@ public class ProfileActivity extends AppCompatActivity {
             loadProfile();
         });
         btnSave.setOnClickListener(v -> saveProfile());
+        btnAddFriend.setOnClickListener(v -> sendFriendRequest());
 
         // Photo pickers (+ overlays)
         imgProfilePic.setOnClickListener(v -> {
@@ -123,6 +130,14 @@ public class ProfileActivity extends AppCompatActivity {
 
     private void setEditing(boolean editing) {
         isEditing = editing;
+        boolean isOwnProfile = viewingUserId == null || viewingUserId.equals(mAuth.getCurrentUser().getUid());
+        
+        // Only allow editing if it's the user's own profile
+        if (!isOwnProfile) {
+            editing = false;
+            isEditing = false;
+        }
+        
         editDisplayName.setEnabled(editing);
         editDisplayName.setInputType(editing ? InputType.TYPE_CLASS_TEXT : InputType.TYPE_NULL);
         editActualName.setEnabled(editing);
@@ -132,29 +147,36 @@ public class ProfileActivity extends AppCompatActivity {
         editContact.setEnabled(editing);
         editContact.setInputType(editing ? InputType.TYPE_CLASS_TEXT : InputType.TYPE_NULL);
 
-        switchDisplayName.setEnabled(editing);
-        switchActualName.setEnabled(editing);
-        switchProfilePic.setEnabled(editing);
-        switchCoverPhoto.setEnabled(editing);
-        switchCategories.setEnabled(editing);
-        switchBio.setEnabled(editing);
-        switchContact.setEnabled(editing);
-        switchStats.setEnabled(editing);
-        switchPrivateMessages.setEnabled(editing);
-        switchFriendRequests.setEnabled(editing);
-        switchChatInvites.setEnabled(editing);
+        // Privacy switches - only show for own profile
+        if (isOwnProfile) {
+            switchDisplayName.setEnabled(editing);
+            switchActualName.setEnabled(editing);
+            switchProfilePic.setEnabled(editing);
+            switchCoverPhoto.setEnabled(editing);
+            switchCategories.setEnabled(editing);
+            switchBio.setEnabled(editing);
+            switchContact.setEnabled(editing);
+            switchStats.setEnabled(editing);
+            switchPrivateMessages.setEnabled(editing);
+            switchFriendRequests.setEnabled(editing);
+            switchChatInvites.setEnabled(editing);
+        }
 
-        btnSave.setVisibility(editing ? View.VISIBLE : View.GONE);
-        btnCancel.setVisibility(editing ? View.VISIBLE : View.GONE);
-        btnEdit.setVisibility(editing ? View.GONE : View.VISIBLE);
+        // Show/hide edit/save/cancel buttons
+        if (isOwnProfile) {
+            btnSave.setVisibility(editing ? View.VISIBLE : View.GONE);
+            btnCancel.setVisibility(editing ? View.VISIBLE : View.GONE);
+            btnEdit.setVisibility(editing ? View.GONE : View.VISIBLE);
+        }
 
-        profilePhotoPlus.setVisibility(editing ? View.VISIBLE : View.GONE);
-        coverPhotoPlus.setVisibility(editing ? View.VISIBLE : View.GONE);
+        // Show/hide photo overlay buttons
+        profilePhotoPlus.setVisibility(editing && isOwnProfile ? View.VISIBLE : View.GONE);
+        coverPhotoPlus.setVisibility(editing && isOwnProfile ? View.VISIBLE : View.GONE);
 
         // Enable/disable category checkboxes
         for (int i = 0; i < categoriesLayout.getChildCount(); i++) {
             View v = categoriesLayout.getChildAt(i);
-            v.setEnabled(editing);
+            v.setEnabled(editing && isOwnProfile);
         }
     }
 
@@ -197,25 +219,50 @@ public class ProfileActivity extends AppCompatActivity {
 
     private void loadProfile() {
         progressBar.setVisibility(View.VISIBLE);
-        String uid = mAuth.getCurrentUser().getUid();
-        db.collection("profiles").document(uid).get().addOnSuccessListener(doc -> {
+        
+        // Determine which user's profile to load
+        String profileUserId = viewingUserId != null ? viewingUserId : mAuth.getCurrentUser().getUid();
+        boolean isOwnProfile = viewingUserId == null || viewingUserId.equals(mAuth.getCurrentUser().getUid());
+        
+        // Show/hide buttons based on whose profile we're viewing
+        if (isOwnProfile) {
+            // Viewing own profile - show edit button, hide add friend button
+            btnEdit.setVisibility(View.VISIBLE);
+            btnAddFriend.setVisibility(View.GONE);
+        } else {
+            // Viewing someone else's profile - hide edit button, show add friend button
+            btnEdit.setVisibility(View.GONE);
+            btnAddFriend.setVisibility(View.VISIBLE);
+            
+            // Check if they're already friends and update button text accordingly
+            checkFriendshipStatus(viewingUserId);
+        }
+        
+        db.collection("profiles").document(profileUserId).get().addOnSuccessListener(doc -> {
             if (doc.exists()) {
                 userProfile = doc.toObject(Profile.class);
             } else {
-                userProfile = new Profile();
-                userProfile.uid = uid;
-                userProfile.displayName = "";
-                userProfile.actualName = "";
-                userProfile.bio = "";
-                userProfile.contact = "";
-                userProfile.profilePictureUrl = "";
-                userProfile.coverPhotoUrl = "";
-                userProfile.supportCategories = new ArrayList<>();
-                userProfile.privacy = new PrivacySettings();
-                userProfile.memberSince = System.currentTimeMillis();
-                userProfile.numPosts = 0;
+                if (isOwnProfile) {
+                    userProfile = new Profile();
+                    userProfile.uid = profileUserId;
+                    userProfile.displayName = "";
+                    userProfile.actualName = "";
+                    userProfile.bio = "";
+                    userProfile.contact = "";
+                    userProfile.profilePictureUrl = "";
+                    userProfile.coverPhotoUrl = "";
+                    userProfile.supportCategories = new ArrayList<>();
+                    userProfile.privacy = new PrivacySettings();
+                    userProfile.memberSince = System.currentTimeMillis();
+                    userProfile.numPosts = 0;
+                } else {
+                    // Other user's profile doesn't exist
+                    Toast.makeText(this, "Profile not found", Toast.LENGTH_SHORT).show();
+                    finish();
+                    return;
+                }
             }
-            fillViews(userProfile);
+            fillViews(userProfile, isOwnProfile);
             progressBar.setVisibility(View.GONE);
         })
         .addOnFailureListener(e -> {
@@ -224,51 +271,106 @@ public class ProfileActivity extends AppCompatActivity {
         });
     }
 
-    private void fillViews(Profile profile) {
-        editDisplayName.setText(profile.displayName);
-        editActualName.setText(profile.actualName);
-        editBio.setText(profile.bio);
-        editContact.setText(profile.contact);
+    private void fillViews(Profile profile, boolean isOwnProfile) {
+        // Show/hide fields based on privacy settings if viewing someone else's profile
+        PrivacySettings priv = profile.privacy != null ? profile.privacy : new PrivacySettings();
+        
+        if (isOwnProfile || priv.showDisplayName) {
+            editDisplayName.setText(profile.displayName);
+            editDisplayName.setVisibility(View.VISIBLE);
+        } else {
+            editDisplayName.setText("Hidden");
+            editDisplayName.setVisibility(View.VISIBLE);
+        }
+        
+        if (isOwnProfile || priv.showActualName) {
+            editActualName.setText(profile.actualName);
+            editActualName.setVisibility(View.VISIBLE);
+        } else {
+            editActualName.setText("Hidden");
+            editActualName.setVisibility(View.VISIBLE);
+        }
+        
+        if (isOwnProfile || priv.showBio) {
+            editBio.setText(profile.bio);
+            editBio.setVisibility(View.VISIBLE);
+        } else {
+            editBio.setText("Hidden");
+            editBio.setVisibility(View.VISIBLE);
+        }
+        
+        if (isOwnProfile || priv.showContact) {
+            editContact.setText(profile.contact);
+            editContact.setVisibility(View.VISIBLE);
+        } else {
+            editContact.setText("Hidden");
+            editContact.setVisibility(View.VISIBLE);
+        }
 
-        if (profile.profilePictureUrl != null && !profile.profilePictureUrl.isEmpty()) {
-            Glide.with(this).load(profile.profilePictureUrl).into(imgProfilePic);
+        // Profile picture
+        if (isOwnProfile || priv.showProfilePicture) {
+            if (profile.profilePictureUrl != null && !profile.profilePictureUrl.isEmpty()) {
+                Glide.with(this).load(profile.profilePictureUrl).into(imgProfilePic);
+            } else {
+                imgProfilePic.setImageResource(R.drawable.ic_person);
+            }
         } else {
             imgProfilePic.setImageResource(R.drawable.ic_person);
         }
 
-        if (profile.coverPhotoUrl != null && !profile.coverPhotoUrl.isEmpty()) {
-            Glide.with(this).load(profile.coverPhotoUrl).into(imgCoverPhoto);
+        // Cover photo
+        if (isOwnProfile || priv.showCoverPhoto) {
+            if (profile.coverPhotoUrl != null && !profile.coverPhotoUrl.isEmpty()) {
+                Glide.with(this).load(profile.coverPhotoUrl).into(imgCoverPhoto);
+            } else {
+                imgCoverPhoto.setImageResource(R.drawable.ic_image);
+            }
         } else {
             imgCoverPhoto.setImageResource(R.drawable.ic_image);
         }
 
+        // Categories
         categoriesLayout.removeAllViews();
-        for (String cat : CATEGORIES) {
-            CheckBox cb = new CheckBox(this);
-            cb.setText(cat);
-            cb.setTextColor(Color.BLACK);
-            cb.setEnabled(isEditing);
-            if (profile.supportCategories != null && profile.supportCategories.contains(cat)) cb.setChecked(true);
-            categoriesLayout.addView(cb);
+        if (isOwnProfile || priv.showSupportCategories) {
+            for (String cat : CATEGORIES) {
+                CheckBox cb = new CheckBox(this);
+                cb.setText(cat);
+                cb.setTextColor(Color.BLACK);
+                cb.setEnabled(isOwnProfile && isEditing);
+                if (profile.supportCategories != null && profile.supportCategories.contains(cat)) cb.setChecked(true);
+                categoriesLayout.addView(cb);
+            }
+        } else {
+            TextView hiddenText = new TextView(this);
+            hiddenText.setText("Categories: Hidden");
+            hiddenText.setTextColor(Color.GRAY);
+            categoriesLayout.addView(hiddenText);
         }
 
+        // Stats
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
-        memberSinceText.setText("Member since: " +
-                sdf.format(new Date(profile.memberSince)));
-        numPostsText.setText("Posts: " + profile.numPosts);
+        if (isOwnProfile || priv.showStats) {
+            memberSinceText.setText("Member since: " + sdf.format(new Date(profile.memberSince)));
+            numPostsText.setText("Posts: " + profile.numPosts);
+        } else {
+            memberSinceText.setText("Member since: Hidden");
+            numPostsText.setText("Posts: Hidden");
+        }
 
-        PrivacySettings priv = profile.privacy != null ? profile.privacy : new PrivacySettings();
-        switchDisplayName.setChecked(priv.showDisplayName);
-        switchActualName.setChecked(priv.showActualName);
-        switchProfilePic.setChecked(priv.showProfilePicture);
-        switchCoverPhoto.setChecked(priv.showCoverPhoto);
-        switchCategories.setChecked(priv.showSupportCategories);
-        switchBio.setChecked(priv.showBio);
-        switchContact.setChecked(priv.showContact);
-        switchStats.setChecked(priv.showStats);
-        switchPrivateMessages.setChecked(priv.allowPrivateMessages);
-        switchFriendRequests.setChecked(priv.allowFriendRequests);
-        switchChatInvites.setChecked(priv.allowChatInvites);
+        // Privacy settings - only show for own profile
+        if (isOwnProfile) {
+            switchDisplayName.setChecked(priv.showDisplayName);
+            switchActualName.setChecked(priv.showActualName);
+            switchProfilePic.setChecked(priv.showProfilePicture);
+            switchCoverPhoto.setChecked(priv.showCoverPhoto);
+            switchCategories.setChecked(priv.showSupportCategories);
+            switchBio.setChecked(priv.showBio);
+            switchContact.setChecked(priv.showContact);
+            switchStats.setChecked(priv.showStats);
+            switchPrivateMessages.setChecked(priv.allowPrivateMessages);
+            switchFriendRequests.setChecked(priv.allowFriendRequests);
+            switchChatInvites.setChecked(priv.allowChatInvites);
+        }
     }
 
     private void saveProfile() {
@@ -403,5 +505,90 @@ public class ProfileActivity extends AppCompatActivity {
     private void openFriendsActivity() {
         Intent intent = new Intent(this, FriendsListActivity.class);
         startActivity(intent);
+    }
+    
+    private void checkFriendshipStatus(String targetUserId) {
+        String currentUserId = mAuth.getCurrentUser().getUid();
+        
+        db.collection("friends")
+                .get()
+                .addOnSuccessListener(querySnapshot -> {
+                    String status = "none"; // none, pending, accepted
+                    for (DocumentSnapshot doc : querySnapshot.getDocuments()) {
+                        Friend friend = doc.toObject(Friend.class);
+                        if (friend != null && friend.involvesUser(currentUserId) && friend.involvesUser(targetUserId)) {
+                            status = friend.status;
+                            break;
+                        }
+                    }
+                    
+                    // Update button text based on friendship status
+                    switch (status) {
+                        case "accepted":
+                            btnAddFriend.setText("Friends");
+                            btnAddFriend.setEnabled(false);
+                            btnAddFriend.setBackgroundTintList(getColorStateList(android.R.color.darker_gray));
+                            break;
+                        case "pending":
+                            btnAddFriend.setText("Request Sent");
+                            btnAddFriend.setEnabled(false);
+                            btnAddFriend.setBackgroundTintList(getColorStateList(android.R.color.darker_gray));
+                            break;
+                        default:
+                            btnAddFriend.setText("Add Friend");
+                            btnAddFriend.setEnabled(true);
+                            btnAddFriend.setBackgroundTintList(getColorStateList(R.color.sky_blue));
+                            break;
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    // If we can't check, just show the default
+                    btnAddFriend.setText("Add Friend");
+                    btnAddFriend.setEnabled(true);
+                });
+    }
+    
+    private void sendFriendRequest() {
+        if (viewingUserId == null) {
+            Toast.makeText(this, "Error: No user to send request to", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        
+        String currentUserId = mAuth.getCurrentUser().getUid();
+        
+        // Check if friendship already exists
+        db.collection("friends")
+                .get()
+                .addOnSuccessListener(querySnapshot -> {
+                    boolean alreadyExists = false;
+                    for (DocumentSnapshot doc : querySnapshot.getDocuments()) {
+                        Friend existing = doc.toObject(Friend.class);
+                        if (existing != null && existing.involvesUser(currentUserId) && existing.involvesUser(viewingUserId)) {
+                            alreadyExists = true;
+                            break;
+                        }
+                    }
+
+                    if (!alreadyExists) {
+                        Friend newFriend = new Friend(currentUserId, viewingUserId, currentUserId);
+                        db.collection("friends")
+                                .add(newFriend)
+                                .addOnSuccessListener(documentReference -> {
+                                    Toast.makeText(this, "Friend request sent!", Toast.LENGTH_SHORT).show();
+                                    btnAddFriend.setText("Request Sent");
+                                    btnAddFriend.setEnabled(false);
+                                    btnAddFriend.setBackgroundTintList(getColorStateList(android.R.color.darker_gray));
+                                })
+                                .addOnFailureListener(e -> {
+                                    Toast.makeText(this, "Failed to send request", Toast.LENGTH_SHORT).show();
+                                });
+                    } else {
+                        Toast.makeText(this, "Friendship already exists", Toast.LENGTH_SHORT).show();
+                        checkFriendshipStatus(viewingUserId);
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    Toast.makeText(this, "Error checking friendship status", Toast.LENGTH_SHORT).show();
+                });
     }
 }

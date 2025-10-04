@@ -338,6 +338,16 @@
                 android:paddingTop="8dp">
 
                 <Button
+                    android:id="@+id/btn_add_friend"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Add Friend"
+                    android:backgroundTint="@color/sky_blue"
+                    android:textColor="@color/white"
+                    android:visibility="gone"
+                    android:layout_marginEnd="8dp"/>
+
+                <Button
                     android:id="@+id/btn_save"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"

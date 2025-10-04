@@ -204,25 +204,66 @@ public class FriendsListActivity extends AppCompatActivity {
         }
 
         progressBar.setVisibility(View.VISIBLE);
+        
+        // Convert query to lowercase for case-insensitive search
+        String lowercaseQuery = query.toLowerCase();
+        
+        // Search for profiles where displayName contains the query (case insensitive)
         firestore.collection("profiles")
                 .orderBy("displayName")
                 .startAt(query)
                 .endAt(query + "\uf8ff")
-                .limit(20)
+                .limit(50)
                 .get()
                 .addOnSuccessListener(querySnapshot -> {
                     List<Profile> profiles = new ArrayList<>();
                     for (DocumentSnapshot doc : querySnapshot.getDocuments()) {
                         Profile profile = doc.toObject(Profile.class);
                         if (profile != null && !profile.uid.equals(currentUserId)) {
-                            profiles.add(profile);
+                            // Also check if the lowercase displayName contains the lowercase query
+                            String profileName = profile.displayName != null ? profile.displayName.toLowerCase() : "";
+                            if (profileName.contains(lowercaseQuery) || 
+                                (profile.actualName != null && profile.actualName.toLowerCase().contains(lowercaseQuery))) {
+                                profiles.add(profile);
+                            }
                         }
                     }
-                    friendAdapter.setSearchResults(profiles);
-                    progressBar.setVisibility(View.GONE);
+                    
+                    // If no results from the ordered search, try a broader search
+                    if (profiles.isEmpty()) {
+                        firestore.collection("profiles")
+                                .limit(100)
+                                .get()
+                                .addOnSuccessListener(allQuerySnapshot -> {
+                                    for (DocumentSnapshot doc : allQuerySnapshot.getDocuments()) {
+                                        Profile profile = doc.toObject(Profile.class);
+                                        if (profile != null && !profile.uid.equals(currentUserId)) {
+                                            String profileName = profile.displayName != null ? profile.displayName.toLowerCase() : "";
+                                            String actualName = profile.actualName != null ? profile.actualName.toLowerCase() : "";
+                                            if (profileName.contains(lowercaseQuery) || actualName.contains(lowercaseQuery)) {
+                                                profiles.add(profile);
+                                            }
+                                        }
+                                    }
+                                    
+                                    if (profiles.isEmpty()) {
+                                        Toast.makeText(this, "No users found matching '" + query + "'", Toast.LENGTH_SHORT).show();
+                                    }
+                                    
+                                    friendAdapter.setSearchResults(profiles);
+                                    progressBar.setVisibility(View.GONE);
+                                })
+                                .addOnFailureListener(e -> {
+                                    Toast.makeText(this, "Search failed: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                                    progressBar.setVisibility(View.GONE);
+                                });
+                    } else {
+                        friendAdapter.setSearchResults(profiles);
+                        progressBar.setVisibility(View.GONE);
+                    }
                 })
                 .addOnFailureListener(e -> {
-                    Toast.makeText(this, "Search failed", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(this, "Search failed: " + e.getMessage(), Toast.LENGTH_SHORT).show();
                     progressBar.setVisibility(View.GONE);
                 });
     }

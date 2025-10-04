@@ -157,13 +157,28 @@ public class PublicFeedActivity extends AppCompatActivity {
             @Override
             public View getView(int position, View convertView, ViewGroup parent) {
                 View v = super.getView(position, convertView, parent);
-                ((TextView) v).setTextColor(Color.parseColor("#212121"));
+                TextView textView = (TextView) v;
+                textView.setTextColor(Color.parseColor("#212121"));
+                textView.setTextSize(16);
+                textView.setPadding(16, 16, 16, 16);
+                textView.setBackgroundColor(Color.parseColor("#FFFFFF"));
                 return v;
             }
             @Override
             public View getDropDownView(int position, View convertView, ViewGroup parent) {
                 View v = super.getDropDownView(position, convertView, parent);
-                ((TextView) v).setTextColor(Color.parseColor("#212121"));
+                TextView textView = (TextView) v;
+                textView.setTextColor(Color.parseColor("#212121"));
+                textView.setTextSize(16);
+                textView.setPadding(20, 20, 20, 20);
+                textView.setBackgroundColor(Color.parseColor("#FFFFFF"));
+                
+                // Add slight background change for better visibility
+                if (position % 2 == 0) {
+                    textView.setBackgroundColor(Color.parseColor("#F8F8F8"));
+                } else {
+                    textView.setBackgroundColor(Color.parseColor("#FFFFFF"));
+                }
                 return v;
             }
         };
@@ -173,8 +188,12 @@ public class PublicFeedActivity extends AppCompatActivity {
 
         categoryFilterSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                selectedFilter = filterOptions.get(position);
-                loadPosts();
+                String newFilter = filterOptions.get(position);
+                Log.d(TAG, "Category filter selected: " + newFilter);
+                if (!newFilter.equals(selectedFilter)) {
+                    selectedFilter = newFilter;
+                    loadPosts();
+                }
             }
             @Override public void onNothingSelected(AdapterView<?> parent) {}
         });
@@ -367,9 +386,24 @@ public class PublicFeedActivity extends AppCompatActivity {
 
     private void uploadPostToFirestore(Map<String, Object> post) {
         Log.d(TAG, "Uploading post to Firestore: " + post.toString());
+        String userId = (String) post.get("userId");
+        
         db.collection("posts").add(post)
             .addOnSuccessListener(documentReference -> {
                 Log.d(TAG, "Post uploaded successfully with ID: " + documentReference.getId());
+                
+                // Update user's post count in their profile
+                if (userId != null && !userId.isEmpty()) {
+                    db.collection("profiles").document(userId)
+                        .update("numPosts", FieldValue.increment(1))
+                        .addOnSuccessListener(aVoid -> {
+                            Log.d(TAG, "User post count incremented successfully");
+                        })
+                        .addOnFailureListener(e -> {
+                            Log.e(TAG, "Failed to increment user post count", e);
+                        });
+                }
+                
                 postEditText.setText("");
                 for (CheckBox cb : categoryCheckBoxesList) cb.setChecked(false);
                 imageUri = null;
@@ -400,6 +434,8 @@ public class PublicFeedActivity extends AppCompatActivity {
         if (!selectedFilter.equals("All")) {
             query = query.whereArrayContains("categories", selectedFilter);
             Log.d(TAG, "Applying category filter: " + selectedFilter);
+        } else {
+            Log.d(TAG, "Loading all posts (no filter)");
         }
 
         Log.d(TAG, "Executing Firestore query...");
@@ -409,8 +445,11 @@ public class PublicFeedActivity extends AppCompatActivity {
                 Log.d(TAG, "Query successful. Document count: " + (result != null ? result.size() : 0));
                 
                 if (result == null || result.isEmpty()) {
-                    Log.w(TAG, "No documents found in posts collection");
-                    Toast.makeText(this, "No posts found. Try creating one!", Toast.LENGTH_SHORT).show();
+                    Log.w(TAG, "No documents found in posts collection for filter: " + selectedFilter);
+                    String message = selectedFilter.equals("All") ? 
+                        "No posts found. Try creating one!" : 
+                        "No posts found for category '" + selectedFilter + "'. Try 'All' or create a post in this category.";
+                    Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
                     return;
                 }
                 
@@ -429,6 +468,9 @@ public class PublicFeedActivity extends AppCompatActivity {
                         String userId = doc.getString("userId");
                         String authorName = doc.getString("authorName");
                         String authorProfilePicture = doc.getString("authorProfilePicture");
+                        
+                        // Debug: Log the categories for this post
+                        Log.d(TAG, "Post " + postId + " categories: " + (cats != null ? cats.toString() : "null"));
                         
                         // Handle timestamp - could be server timestamp (null) or long value
                         long timestamp = System.currentTimeMillis();
@@ -457,6 +499,15 @@ public class PublicFeedActivity extends AppCompatActivity {
                         }
                         if (userId == null) {
                             userId = "";
+                        }
+                        
+                        // Double-check filtering logic for debugging
+                        if (!selectedFilter.equals("All")) {
+                            if (cats.isEmpty() || !cats.contains(selectedFilter)) {
+                                Log.d(TAG, "Post " + postId + " filtered out - doesn't match category " + selectedFilter);
+                                continue;
+                            }
+                            Log.d(TAG, "Post " + postId + " matches filter " + selectedFilter);
                         }
                         
                         Post post = new Post(postId, content, cats, imageUrl, userId, authorName, authorProfilePicture, timestamp);
@@ -499,7 +550,7 @@ public class PublicFeedActivity extends AppCompatActivity {
                     }
                 }
                 
-                Log.d(TAG, "Post processing complete. Success: " + successCount + ", Errors: " + errorCount);
+                Log.d(TAG, "Post processing complete. Success: " + successCount + ", Errors: " + errorCount + ", Filter: " + selectedFilter);
                 
                 // Sort posts by timestamp (newest first)
                 tempPosts.sort((p1, p2) -> Long.compare(p2.timestamp, p1.timestamp));
@@ -513,9 +564,15 @@ public class PublicFeedActivity extends AppCompatActivity {
                     Log.d(TAG, "UI updated - postAdapter.notifyDataSetChanged() called");
                     
                     if (posts.isEmpty()) {
-                        Toast.makeText(this, "No posts to display. Try creating one!", Toast.LENGTH_SHORT).show();
+                        String message = selectedFilter.equals("All") ? 
+                            "No posts to display. Try creating one!" : 
+                            "No posts found for '" + selectedFilter + "'. Try 'All' or create a post in this category.";
+                        Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
                     } else {
-                        Toast.makeText(this, "Loaded " + posts.size() + " post(s)", Toast.LENGTH_SHORT).show();
+                        String message = selectedFilter.equals("All") ? 
+                            "Loaded " + posts.size() + " post(s)" :
+                            "Loaded " + posts.size() + " post(s) for '" + selectedFilter + "'";
+                        Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
                     }
                 });
                 
