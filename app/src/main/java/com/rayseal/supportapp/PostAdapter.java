@@ -47,105 +47,163 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
 
   @Override
   public void onBindViewHolder(@NonNull PostViewHolder holder, int position) {
-    Post post = posts.get(position);
-    Context context = holder.itemView.getContext();
-    
-    holder.postContentText.setText(post.content);
-    holder.postCategoriesText.setText("Categories: " + String.join(", ", post.categories));
-    
-    // Set author info
-    holder.authorNameText.setText(post.authorName != null && !post.authorName.isEmpty() 
-        ? post.authorName : "Anonymous");
-    
-    // Load author profile picture
-    if (post.authorProfilePicture != null && !post.authorProfilePicture.isEmpty()) {
-        Glide.with(context)
-                .load(post.authorProfilePicture)
-                .placeholder(R.drawable.ic_person)
-                .error(R.drawable.ic_person)
-                .into(holder.authorProfilePicture);
-    } else {
-        holder.authorProfilePicture.setImageResource(R.drawable.ic_person);
-    }
-    
-    // Author section click listener to view profile
-    holder.authorSection.setOnClickListener(v -> {
-        if (post.userId != null && !post.userId.isEmpty()) {
-            Intent intent = new Intent(context, ProfileActivity.class);
-            intent.putExtra("userId", post.userId);
-            context.startActivity(intent);
-        }
-    });
-    
-    // Handle post image
-    if (post.imageUrl != null && !post.imageUrl.isEmpty()) {
-      holder.postImageView.setVisibility(View.VISIBLE);
-      Glide.with(context)
-           .load(post.imageUrl)
-           .placeholder(android.R.drawable.ic_menu_gallery)
-           .error(android.R.drawable.ic_delete)
-           .into(holder.postImageView);
-           
-      // Click to enlarge image
-      holder.postImageView.setOnClickListener(v -> {
-          Intent intent = new Intent(context, ImageViewerActivity.class);
-          intent.putExtra("imageUrl", post.imageUrl);
-          context.startActivity(intent);
+    try {
+      Post post = posts.get(position);
+      Context context = holder.itemView.getContext();
+      
+      // Safe string operations with null checks
+      holder.postContentText.setText(post.content != null ? post.content : "");
+      
+      if (post.categories != null && !post.categories.isEmpty()) {
+          holder.postCategoriesText.setText("Categories: " + String.join(", ", post.categories));
+      } else {
+          holder.postCategoriesText.setText("Categories: General");
+      }
+      
+      // Set author info with null checks
+      String displayName = (post.authorName != null && !post.authorName.isEmpty()) 
+          ? post.authorName : "Anonymous";
+      holder.authorNameText.setText(displayName);
+      
+      // Load author profile picture safely
+      if (post.authorProfilePicture != null && !post.authorProfilePicture.isEmpty()) {
+          try {
+              Glide.with(context)
+                      .load(post.authorProfilePicture)
+                      .placeholder(R.drawable.ic_person)
+                      .error(R.drawable.ic_person)
+                      .into(holder.authorProfilePicture);
+          } catch (Exception e) {
+              holder.authorProfilePicture.setImageResource(R.drawable.ic_person);
+          }
+      } else {
+          holder.authorProfilePicture.setImageResource(R.drawable.ic_person);
+      }
+      
+      // Author section click listener to view profile
+      holder.authorSection.setOnClickListener(v -> {
+          if (post.userId != null && !post.userId.isEmpty()) {
+              Intent intent = new Intent(context, ProfileActivity.class);
+              intent.putExtra("userId", post.userId);
+              context.startActivity(intent);
+          }
       });
-    } else {
-      holder.postImageView.setVisibility(View.GONE);
+      
+      // Handle post image safely
+      if (post.imageUrl != null && !post.imageUrl.isEmpty()) {
+        holder.postImageView.setVisibility(View.VISIBLE);
+        try {
+            Glide.with(context)
+                 .load(post.imageUrl)
+                 .placeholder(android.R.drawable.ic_menu_gallery)
+                 .error(android.R.drawable.ic_delete)
+                 .into(holder.postImageView);
+                 
+            // Click to enlarge image
+            holder.postImageView.setOnClickListener(v -> {
+                Intent intent = new Intent(context, ImageViewerActivity.class);
+                intent.putExtra("imageUrl", post.imageUrl);
+                context.startActivity(intent);
+            });
+        } catch (Exception e) {
+            holder.postImageView.setVisibility(View.GONE);
+        }
+      } else {
+        holder.postImageView.setVisibility(View.GONE);
+      }
+      
+      // Set up reactions safely
+      setupReactions(holder, post, position);
+      
+      // Comments section safely
+      int commentCount = post.commentCount;
+      holder.commentCountText.setText(commentCount == 1 ? "1 comment" : commentCount + " comments");
+      holder.commentsSection.setOnClickListener(v -> showCommentsDialog(context, post, position));
+      
+    } catch (Exception e) {
+        android.util.Log.e("PostAdapter", "Error binding post at position " + position, e);
+        // Set default values to prevent crash
+        holder.postContentText.setText("Error loading post");
+        holder.authorNameText.setText("Anonymous");
+        holder.authorProfilePicture.setImageResource(R.drawable.ic_person);
+        holder.postImageView.setVisibility(View.GONE);
+        holder.commentCountText.setText("0 comments");
     }
-    
-    // Set up reactions
-    setupReactions(holder, post, position);
-    
-    // Comments section
-    int commentCount = post.commentCount;
-    holder.commentCountText.setText(commentCount == 1 ? "1 comment" : commentCount + " comments");
-    holder.commentsSection.setOnClickListener(v -> showCommentsDialog(context, post, position));
   }
 
   private void setupReactions(PostViewHolder holder, Post post, int position) {
-    // Reaction types and their messages
-    Map<String, String> reactionTypes = new HashMap<>();
-    reactionTypes.put("youGotThis", "You got this");
-    reactionTypes.put("notAlone", "You're not alone");
-    reactionTypes.put("withYou", "Right here with you");
-    reactionTypes.put("strong", "You are strong");
-    reactionTypes.put("support", "Sending support");
-    
-    // Set reaction counts and click listeners
-    setupReactionButton(holder.reactionYouGotThis, post, "youGotThis", "You got this", position);
-    setupReactionButton(holder.reactionNotAlone, post, "notAlone", "You're not alone", position);
-    setupReactionButton(holder.reactionWithYou, post, "withYou", "Right here with you", position);
-    setupReactionButton(holder.reactionStrong, post, "strong", "You are strong", position);
-    setupReactionButton(holder.reactionSupport, post, "support", "Sending support", position);
+    try {
+        // Reaction types and their messages
+        Map<String, String> reactionTypes = new HashMap<>();
+        reactionTypes.put("youGotThis", "You got this");
+        reactionTypes.put("notAlone", "You're not alone");
+        reactionTypes.put("withYou", "Right here with you");
+        reactionTypes.put("strong", "You are strong");
+        reactionTypes.put("support", "Sending support");
+        
+        // Set reaction counts and click listeners safely
+        setupReactionButton(holder.reactionYouGotThis, post, "youGotThis", "You got this", position);
+        setupReactionButton(holder.reactionNotAlone, post, "notAlone", "You're not alone", position);
+        setupReactionButton(holder.reactionWithYou, post, "withYou", "Right here with you", position);
+        setupReactionButton(holder.reactionStrong, post, "strong", "You are strong", position);
+        setupReactionButton(holder.reactionSupport, post, "support", "Sending support", position);
+    } catch (Exception e) {
+        android.util.Log.e("PostAdapter", "Error setting up reactions", e);
+        // Set default text for all reaction buttons
+        try {
+            holder.reactionYouGotThis.setText("❤️ 0");
+            holder.reactionNotAlone.setText("🧡 0");
+            holder.reactionWithYou.setText("💛 0");
+            holder.reactionStrong.setText("💚 0");
+            holder.reactionSupport.setText("💙 0");
+        } catch (Exception e2) {
+            // If even this fails, just continue
+        }
+    }
   }
   
   private void setupReactionButton(TextView reactionView, Post post, String reactionType, String message, int position) {
-    int count = post.reactions != null && post.reactions.containsKey(reactionType) ? 
-        post.reactions.get(reactionType) : 0;
-    
-    String emoji = getReactionEmoji(reactionType);
-    reactionView.setText(emoji + " " + count);
-    
-    // Check if current user has reacted
-    boolean hasReacted = false;
-    if (post.userReactions != null && post.userReactions.containsKey(reactionType) && 
-        post.userReactions.get(reactionType) != null) {
-        hasReacted = post.userReactions.get(reactionType).contains(currentUserId);
+    try {
+        if (reactionView == null || post == null) return;
+        
+        int count = 0;
+        if (post.reactions != null && post.reactions.containsKey(reactionType)) {
+            Integer countValue = post.reactions.get(reactionType);
+            count = countValue != null ? countValue : 0;
+        }
+        
+        String emoji = getReactionEmoji(reactionType);
+        reactionView.setText(emoji + " " + count);
+        
+        // Check if current user has reacted
+        boolean hasReacted = false;
+        if (currentUserId != null && !currentUserId.isEmpty() && 
+            post.userReactions != null && post.userReactions.containsKey(reactionType) && 
+            post.userReactions.get(reactionType) != null) {
+            hasReacted = post.userReactions.get(reactionType).contains(currentUserId);
+        }
+        
+        // Style based on user reaction
+        if (hasReacted) {
+            reactionView.setAlpha(1.0f);
+            reactionView.setTextColor(0xFF4CAF50); // Green for reacted
+        } else {
+            reactionView.setAlpha(0.6f);
+            reactionView.setTextColor(0xFF666666); // Gray for not reacted
+        }
+        
+        reactionView.setOnClickListener(v -> {
+            if (post.postId != null) {
+                toggleReaction(post, reactionType, message, position);
+            }
+        });
+    } catch (Exception e) {
+        android.util.Log.e("PostAdapter", "Error setting up reaction button: " + reactionType, e);
+        if (reactionView != null) {
+            String emoji = getReactionEmoji(reactionType);
+            reactionView.setText(emoji + " 0");
+        }
     }
-    
-    // Style based on user reaction
-    if (hasReacted) {
-        reactionView.setAlpha(1.0f);
-        reactionView.setTextColor(0xFF4CAF50); // Green for reacted
-    } else {
-        reactionView.setAlpha(0.6f);
-        reactionView.setTextColor(0xFF666666); // Gray for not reacted
-    }
-    
-    reactionView.setOnClickListener(v -> toggleReaction(post, reactionType, message, position));
   }
   
   private String getReactionEmoji(String reactionType) {

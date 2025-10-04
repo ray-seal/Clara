@@ -350,43 +350,61 @@ public class PublicFeedActivity extends AppCompatActivity {
             if (task.isSuccessful()) {
                 posts.clear();
                 for (QueryDocumentSnapshot doc : task.getResult()) {
-                    String postId = doc.getId();
-                    String content = doc.getString("content");
-                    List<String> cats = (List<String>) doc.get("categories");
-                    String imageUrl = doc.contains("imageUrl") ? doc.getString("imageUrl") : null;
-                    String userId = doc.getString("userId");
-                    String authorName = doc.getString("authorName");
-                    String authorProfilePicture = doc.getString("authorProfilePicture");
-                    Long timestampLong = doc.getLong("timestamp");
-                    long timestamp = timestampLong != null ? timestampLong : 0;
-                    
-                    Post post = new Post(postId, content, cats, imageUrl, userId, authorName, authorProfilePicture, timestamp);
-                    
-                    // Load reactions
-                    Map<String, Object> reactions = (Map<String, Object>) doc.get("reactions");
-                    if (reactions != null) {
-                        for (Map.Entry<String, Object> entry : reactions.entrySet()) {
-                            if (entry.getValue() instanceof Long) {
-                                post.reactions.put(entry.getKey(), ((Long) entry.getValue()).intValue());
+                    try {
+                        String postId = doc.getId();
+                        String content = doc.getString("content");
+                        List<String> cats = (List<String>) doc.get("categories");
+                        String imageUrl = doc.contains("imageUrl") ? doc.getString("imageUrl") : null;
+                        String userId = doc.getString("userId");
+                        String authorName = doc.getString("authorName");
+                        String authorProfilePicture = doc.getString("authorProfilePicture");
+                        Long timestampLong = doc.getLong("timestamp");
+                        long timestamp = timestampLong != null ? timestampLong : System.currentTimeMillis();
+                        
+                        // Handle backward compatibility for old posts
+                        if (authorName == null || authorName.isEmpty()) {
+                            authorName = "Anonymous";
+                        }
+                        if (authorProfilePicture == null) {
+                            authorProfilePicture = "";
+                        }
+                        if (cats == null) {
+                            cats = new ArrayList<>();
+                        }
+                        
+                        Post post = new Post(postId, content, cats, imageUrl, userId, authorName, authorProfilePicture, timestamp);
+                        
+                        // Load reactions with null checks
+                        Map<String, Object> reactions = (Map<String, Object>) doc.get("reactions");
+                        if (reactions != null) {
+                            for (Map.Entry<String, Object> entry : reactions.entrySet()) {
+                                if (entry.getValue() instanceof Long) {
+                                    post.reactions.put(entry.getKey(), ((Long) entry.getValue()).intValue());
+                                } else if (entry.getValue() instanceof Integer) {
+                                    post.reactions.put(entry.getKey(), (Integer) entry.getValue());
+                                }
                             }
                         }
-                    }
-                    
-                    // Load user reactions
-                    Map<String, Object> userReactions = (Map<String, Object>) doc.get("userReactions");
-                    if (userReactions != null) {
-                        for (Map.Entry<String, Object> entry : userReactions.entrySet()) {
-                            if (entry.getValue() instanceof List) {
-                                post.userReactions.put(entry.getKey(), (List<String>) entry.getValue());
+                        
+                        // Load user reactions with null checks
+                        Map<String, Object> userReactions = (Map<String, Object>) doc.get("userReactions");
+                        if (userReactions != null) {
+                            for (Map.Entry<String, Object> entry : userReactions.entrySet()) {
+                                if (entry.getValue() instanceof List) {
+                                    post.userReactions.put(entry.getKey(), (List<String>) entry.getValue());
+                                }
                             }
                         }
+                        
+                        // Load comment count with null check
+                        Long commentCountLong = doc.getLong("commentCount");
+                        post.commentCount = commentCountLong != null ? commentCountLong.intValue() : 0;
+                        
+                        posts.add(post);
+                    } catch (Exception e) {
+                        Log.e(TAG, "Error parsing post: " + e.getMessage(), e);
+                        // Continue with next post instead of crashing
                     }
-                    
-                    // Load comment count
-                    Long commentCountLong = doc.getLong("commentCount");
-                    post.commentCount = commentCountLong != null ? commentCountLong.intValue() : 0;
-                    
-                    posts.add(post);
                 }
                 postAdapter.notifyDataSetChanged();
             } else {

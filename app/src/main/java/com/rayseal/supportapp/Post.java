@@ -3,6 +3,7 @@ package com.rayseal.supportapp;
 import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
+import java.util.ArrayList;
 
 public class Post {
   public String postId;
@@ -45,12 +46,12 @@ public class Post {
   public Post(String postId, String content, List<String> categories, String imageUrl, 
               String userId, String authorName, String authorProfilePicture, long timestamp) {
     this.postId = postId;
-    this.content = content;
-    this.categories = categories;
+    this.content = content != null ? content : "";
+    this.categories = categories != null ? categories : new ArrayList<>();
     this.imageUrl = imageUrl;
-    this.userId = userId;
-    this.authorName = authorName;
-    this.authorProfilePicture = authorProfilePicture;
+    this.userId = userId != null ? userId : "";
+    this.authorName = authorName != null && !authorName.isEmpty() ? authorName : "Anonymous";
+    this.authorProfilePicture = authorProfilePicture != null ? authorProfilePicture : "";
     this.timestamp = timestamp;
     this.reactions = new HashMap<>();
     this.userReactions = new HashMap<>();
