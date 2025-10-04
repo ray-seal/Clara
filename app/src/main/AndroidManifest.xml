@@ -30,6 +30,8 @@ android:theme="@style/Theme.SupportApp">
 <activity android:name=".ChatRoomListActivity" />
 <activity android:name=".ChatRoomActivity" />
 <activity android:name=".FriendsListActivity" />
+<activity android:name=".ImageViewerActivity" 
+          android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen" />
   
 </application>
 

@@ -240,31 +240,87 @@ public class PublicFeedActivity extends AppCompatActivity {
             return;
         }
         String userId = user.getUid();
-        Map<String, Object> post = new HashMap<>();
-        post.put("userId", userId);
-        post.put("content", content);
-        post.put("categories", selectedCategories);
-        post.put("timestamp", FieldValue.serverTimestamp());
+        
+        // Get user profile info for the post
+        db.collection("profiles").document(userId).get()
+            .addOnSuccessListener(doc -> {
+                String authorName = "Anonymous";
+                String authorProfilePicture = "";
+                
+                if (doc.exists()) {
+                    Profile profile = doc.toObject(Profile.class);
+                    if (profile != null) {
+                        authorName = profile.displayName != null && !profile.displayName.isEmpty() ? 
+                            profile.displayName : "Anonymous";
+                        authorProfilePicture = profile.profilePictureUrl != null ? profile.profilePictureUrl : "";
+                    }
+                }
+                
+                Map<String, Object> post = new HashMap<>();
+                post.put("userId", userId);
+                post.put("authorName", authorName);
+                post.put("authorProfilePicture", authorProfilePicture);
+                post.put("content", content);
+                post.put("categories", selectedCategories);
+                post.put("timestamp", FieldValue.serverTimestamp());
+                post.put("reactions", new HashMap<String, Integer>());
+                post.put("userReactions", new HashMap<String, List<String>>());
+                post.put("commentCount", 0);
 
-        if (imageUri != null) {
-            StorageReference storageRef = FirebaseStorage.getInstance().getReference().child("post_images/" + System.currentTimeMillis() + ".jpg");
-            storageRef.putFile(imageUri)
-                .addOnSuccessListener(taskSnapshot ->
-                    storageRef.getDownloadUrl().addOnSuccessListener(uri -> {
-                        post.put("imageUrl", uri.toString());
-                        uploadPostToFirestore(post);
-                    }).addOnFailureListener(e -> {
-                        Toast.makeText(this, "Image upload failed: " + e.getMessage(), Toast.LENGTH_LONG).show();
-                        Log.e(TAG, "Image upload getDownloadUrl failed", e);
-                    })
-                )
-                .addOnFailureListener(e -> {
-                    Toast.makeText(this, "Image upload failed: " + e.getMessage(), Toast.LENGTH_LONG).show();
-                    Log.e(TAG, "Image upload putFile failed", e);
-                });
-        } else {
-            uploadPostToFirestore(post);
-        }
+                if (imageUri != null) {
+                    StorageReference storageRef = FirebaseStorage.getInstance().getReference().child("post_images/" + System.currentTimeMillis() + ".jpg");
+                    storageRef.putFile(imageUri)
+                        .addOnSuccessListener(taskSnapshot ->
+                            storageRef.getDownloadUrl().addOnSuccessListener(uri -> {
+                                post.put("imageUrl", uri.toString());
+                                uploadPostToFirestore(post);
+                            }).addOnFailureListener(e -> {
+                                Toast.makeText(this, "Image upload failed: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                                Log.e(TAG, "Image upload getDownloadUrl failed", e);
+                            })
+                        )
+                        .addOnFailureListener(e -> {
+                            Toast.makeText(this, "Image upload failed: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                            Log.e(TAG, "Image upload putFile failed", e);
+                        });
+                } else {
+                    uploadPostToFirestore(post);
+                }
+            })
+            .addOnFailureListener(e -> {
+                Log.e(TAG, "Error loading user profile", e);
+                // Continue with anonymous posting
+                Map<String, Object> post = new HashMap<>();
+                post.put("userId", userId);
+                post.put("authorName", "Anonymous");
+                post.put("authorProfilePicture", "");
+                post.put("content", content);
+                post.put("categories", selectedCategories);
+                post.put("timestamp", FieldValue.serverTimestamp());
+                post.put("reactions", new HashMap<String, Integer>());
+                post.put("userReactions", new HashMap<String, List<String>>());
+                post.put("commentCount", 0);
+
+                if (imageUri != null) {
+                    StorageReference storageRef = FirebaseStorage.getInstance().getReference().child("post_images/" + System.currentTimeMillis() + ".jpg");
+                    storageRef.putFile(imageUri)
+                        .addOnSuccessListener(taskSnapshot ->
+                            storageRef.getDownloadUrl().addOnSuccessListener(uri -> {
+                                post.put("imageUrl", uri.toString());
+                                uploadPostToFirestore(post);
+                            }).addOnFailureListener(e2 -> {
+                                Toast.makeText(this, "Image upload failed: " + e2.getMessage(), Toast.LENGTH_LONG).show();
+                                Log.e(TAG, "Image upload getDownloadUrl failed", e2);
+                            })
+                        )
+                        .addOnFailureListener(e2 -> {
+                            Toast.makeText(this, "Image upload failed: " + e2.getMessage(), Toast.LENGTH_LONG).show();
+                            Log.e(TAG, "Image upload putFile failed", e2);
+                        });
+                } else {
+                    uploadPostToFirestore(post);
+                }
+            });
     }
 
     private void uploadPostToFirestore(Map<String, Object> post) {
@@ -294,10 +350,43 @@ public class PublicFeedActivity extends AppCompatActivity {
             if (task.isSuccessful()) {
                 posts.clear();
                 for (QueryDocumentSnapshot doc : task.getResult()) {
+                    String postId = doc.getId();
                     String content = doc.getString("content");
                     List<String> cats = (List<String>) doc.get("categories");
                     String imageUrl = doc.contains("imageUrl") ? doc.getString("imageUrl") : null;
-                    posts.add(new Post(content, cats, imageUrl));
+                    String userId = doc.getString("userId");
+                    String authorName = doc.getString("authorName");
+                    String authorProfilePicture = doc.getString("authorProfilePicture");
+                    Long timestampLong = doc.getLong("timestamp");
+                    long timestamp = timestampLong != null ? timestampLong : 0;
+                    
+                    Post post = new Post(postId, content, cats, imageUrl, userId, authorName, authorProfilePicture, timestamp);
+                    
+                    // Load reactions
+                    Map<String, Object> reactions = (Map<String, Object>) doc.get("reactions");
+                    if (reactions != null) {
+                        for (Map.Entry<String, Object> entry : reactions.entrySet()) {
+                            if (entry.getValue() instanceof Long) {
+                                post.reactions.put(entry.getKey(), ((Long) entry.getValue()).intValue());
+                            }
+                        }
+                    }
+                    
+                    // Load user reactions
+                    Map<String, Object> userReactions = (Map<String, Object>) doc.get("userReactions");
+                    if (userReactions != null) {
+                        for (Map.Entry<String, Object> entry : userReactions.entrySet()) {
+                            if (entry.getValue() instanceof List) {
+                                post.userReactions.put(entry.getKey(), (List<String>) entry.getValue());
+                            }
+                        }
+                    }
+                    
+                    // Load comment count
+                    Long commentCountLong = doc.getLong("commentCount");
+                    post.commentCount = commentCountLong != null ? commentCountLong.intValue() : 0;
+                    
+                    posts.add(post);
                 }
                 postAdapter.notifyDataSetChanged();
             } else {
