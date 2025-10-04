@@ -14,6 +14,7 @@ public class Post {
   public String authorName;
   public String authorProfilePicture;
   public long timestamp;
+  public boolean isAnonymous;
   public Map<String, Integer> reactions; // reaction type -> count
   public Map<String, List<String>> userReactions; // reaction type -> list of user IDs
   public int commentCount;
@@ -53,6 +54,7 @@ public class Post {
     this.authorName = authorName != null && !authorName.isEmpty() ? authorName : "Anonymous";
     this.authorProfilePicture = authorProfilePicture != null ? authorProfilePicture : "";
     this.timestamp = timestamp;
+    this.isAnonymous = false; // Default to false for existing posts
     this.reactions = new HashMap<>();
     this.userReactions = new HashMap<>();
     this.commentCount = 0;

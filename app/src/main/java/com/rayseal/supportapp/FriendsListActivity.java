@@ -115,8 +115,6 @@ public class FriendsListActivity extends AppCompatActivity {
         btnSearch.setOnClickListener(v -> {
             currentView = "search";
             updateButtonStyles();
-            searchInput.setVisibility(View.VISIBLE);
-            findViewById(R.id.btnSearchUser).setVisibility(View.VISIBLE);
             friendAdapter.clearItems();
         });
 
@@ -129,17 +127,19 @@ public class FriendsListActivity extends AppCompatActivity {
         btnRequests.setBackgroundTintList(getColorStateList(android.R.color.darker_gray));
         btnSearch.setBackgroundTintList(getColorStateList(android.R.color.darker_gray));
 
-        // Hide search elements by default
-        searchInput.setVisibility(View.GONE);
-        findViewById(R.id.btnSearchUser).setVisibility(View.GONE);
-
-        // Highlight selected button
+        // Highlight selected button and show/hide search elements
         if (currentView.equals("friends")) {
             btnFriends.setBackgroundTintList(getColorStateList(android.R.color.holo_blue_light));
+            searchInput.setVisibility(View.GONE);
+            findViewById(R.id.btnSearchUser).setVisibility(View.GONE);
         } else if (currentView.equals("requests")) {
             btnRequests.setBackgroundTintList(getColorStateList(android.R.color.holo_blue_light));
+            searchInput.setVisibility(View.GONE);
+            findViewById(R.id.btnSearchUser).setVisibility(View.GONE);
         } else {
             btnSearch.setBackgroundTintList(getColorStateList(android.R.color.holo_blue_light));
+            searchInput.setVisibility(View.VISIBLE);
+            findViewById(R.id.btnSearchUser).setVisibility(View.VISIBLE);
         }
     }
 

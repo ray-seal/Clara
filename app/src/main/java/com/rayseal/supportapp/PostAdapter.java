@@ -80,12 +80,14 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
           holder.authorProfilePicture.setImageResource(R.drawable.ic_person);
       }
       
-      // Author section click listener to view profile
+      // Author section click listener to view profile - only if not anonymous
       holder.authorSection.setOnClickListener(v -> {
-          if (post.userId != null && !post.userId.isEmpty()) {
+          if (!post.isAnonymous && post.userId != null && !post.userId.isEmpty()) {
               Intent intent = new Intent(context, ProfileActivity.class);
               intent.putExtra("userId", post.userId);
               context.startActivity(intent);
+          } else if (post.isAnonymous) {
+              Toast.makeText(context, "This is an anonymous post", Toast.LENGTH_SHORT).show();
           }
       });
       

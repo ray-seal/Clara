@@ -150,6 +150,15 @@
         android:layout_marginTop="8dp"
         android:layout_marginBottom="8dp"/>
 
+      <CheckBox
+        android:id="@+id/anonymousCheckbox"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Post anonymously"
+        android:textColor="#212121"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="8dp"/>
+
       <Button
         android:id="@+id/postButton"
         android:layout_width="wrap_content"

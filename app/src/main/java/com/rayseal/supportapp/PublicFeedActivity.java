@@ -35,6 +35,7 @@ public class PublicFeedActivity extends AppCompatActivity {
     private ImageView postImagePreview;
     private RecyclerView postsRecyclerView;
     private PostAdapter postAdapter;
+    private CheckBox anonymousCheckbox;
     private List<String> categories = Arrays.asList(
             "Anxiety","Depression","Insomnia","PTSD","Gender Dysphoria","Addiction","Other"
     );
@@ -64,6 +65,7 @@ public class PublicFeedActivity extends AppCompatActivity {
         postsRecyclerView = findViewById(R.id.postsRecyclerView);
         postImagePreview = findViewById(R.id.postImagePreview);
         selectImageButton = findViewById(R.id.selectImageButton);
+        anonymousCheckbox = findViewById(R.id.anonymousCheckbox);
 
         // PROFILE AVATAR IN TOP BAR
         ImageView userAvatar = findViewById(R.id.userAvatar);
@@ -307,8 +309,9 @@ public class PublicFeedActivity extends AppCompatActivity {
             .addOnSuccessListener(doc -> {
                 String authorName = "Anonymous";
                 String authorProfilePicture = "";
+                boolean isAnonymous = anonymousCheckbox.isChecked();
                 
-                if (doc.exists()) {
+                if (doc.exists() && !isAnonymous) {
                     Profile profile = doc.toObject(Profile.class);
                     if (profile != null) {
                         authorName = profile.displayName != null && !profile.displayName.isEmpty() ? 
@@ -327,6 +330,7 @@ public class PublicFeedActivity extends AppCompatActivity {
                 post.put("reactions", new HashMap<String, Integer>());
                 post.put("userReactions", new HashMap<String, List<String>>());
                 post.put("commentCount", 0);
+                post.put("isAnonymous", isAnonymous);
 
                 if (imageUri != null) {
                     StorageReference storageRef = FirebaseStorage.getInstance().getReference().child("post_images/" + System.currentTimeMillis() + ".jpg");
@@ -351,6 +355,7 @@ public class PublicFeedActivity extends AppCompatActivity {
             .addOnFailureListener(e -> {
                 Log.e(TAG, "Error loading user profile", e);
                 // Continue with anonymous posting
+                boolean isAnonymous = anonymousCheckbox.isChecked();
                 Map<String, Object> post = new HashMap<>();
                 post.put("userId", userId);
                 post.put("authorName", "Anonymous");
@@ -361,6 +366,7 @@ public class PublicFeedActivity extends AppCompatActivity {
                 post.put("reactions", new HashMap<String, Integer>());
                 post.put("userReactions", new HashMap<String, List<String>>());
                 post.put("commentCount", 0);
+                post.put("isAnonymous", isAnonymous);
 
                 if (imageUri != null) {
                     StorageReference storageRef = FirebaseStorage.getInstance().getReference().child("post_images/" + System.currentTimeMillis() + ".jpg");
@@ -511,6 +517,10 @@ public class PublicFeedActivity extends AppCompatActivity {
                         }
                         
                         Post post = new Post(postId, content, cats, imageUrl, userId, authorName, authorProfilePicture, timestamp);
+                        
+                        // Load anonymous flag with null check (backward compatibility)
+                        Boolean isAnonymous = doc.getBoolean("isAnonymous");
+                        post.isAnonymous = isAnonymous != null ? isAnonymous : false;
                         
                         // Load reactions with null checks
                         Map<String, Object> reactions = (Map<String, Object>) doc.get("reactions");
