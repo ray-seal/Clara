@@ -10,6 +10,8 @@ public class PrivacySettings {
     public boolean showContact = false;
     public boolean showStats = true;
     public boolean allowPrivateMessages = true;
+    public boolean allowFriendRequests = true;
+    public boolean allowChatInvites = true;
 
     public PrivacySettings() {}
 }

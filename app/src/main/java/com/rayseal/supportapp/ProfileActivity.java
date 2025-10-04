@@ -39,7 +39,8 @@ public class ProfileActivity extends AppCompatActivity {
     private LinearLayout categoriesLayout;
     private TextView memberSinceText, numPostsText;
     private Switch switchDisplayName, switchActualName, switchProfilePic, switchCoverPhoto,
-            switchCategories, switchBio, switchContact, switchStats, switchPrivateMessages;
+            switchCategories, switchBio, switchContact, switchStats, switchPrivateMessages,
+            switchFriendRequests, switchChatInvites;
     private Button btnSave, btnCancel, btnEdit;
     private ProgressBar progressBar;
 
@@ -83,6 +84,8 @@ public class ProfileActivity extends AppCompatActivity {
         switchContact = findViewById(R.id.switch_priv_contact);
         switchStats = findViewById(R.id.switch_priv_stats);
         switchPrivateMessages = findViewById(R.id.switch_priv_messages);
+        switchFriendRequests = findViewById(R.id.switch_priv_friend_requests);
+        switchChatInvites = findViewById(R.id.switch_priv_chat_invites);
 
         btnSave = findViewById(R.id.btn_save);
         btnCancel = findViewById(R.id.btn_cancel);
@@ -92,6 +95,7 @@ public class ProfileActivity extends AppCompatActivity {
 
         // Top bar buttons
         findViewById(R.id.btn_crisis).setOnClickListener(v -> showCrisisDialog());
+        findViewById(R.id.btn_friends).setOnClickListener(v -> openFriendsActivity());
         findViewById(R.id.btn_settings).setOnClickListener(v -> openSettings());
 
         // Edit controls
@@ -136,6 +140,9 @@ public class ProfileActivity extends AppCompatActivity {
         switchBio.setEnabled(editing);
         switchContact.setEnabled(editing);
         switchStats.setEnabled(editing);
+        switchPrivateMessages.setEnabled(editing);
+        switchFriendRequests.setEnabled(editing);
+        switchChatInvites.setEnabled(editing);
 
         btnSave.setVisibility(editing ? View.VISIBLE : View.GONE);
         btnCancel.setVisibility(editing ? View.VISIBLE : View.GONE);
@@ -260,6 +267,8 @@ public class ProfileActivity extends AppCompatActivity {
         switchContact.setChecked(priv.showContact);
         switchStats.setChecked(priv.showStats);
         switchPrivateMessages.setChecked(priv.allowPrivateMessages);
+        switchFriendRequests.setChecked(priv.allowFriendRequests);
+        switchChatInvites.setChecked(priv.allowChatInvites);
     }
 
     private void saveProfile() {
@@ -291,6 +300,8 @@ public class ProfileActivity extends AppCompatActivity {
         priv.showContact = switchContact.isChecked();
         priv.showStats = switchStats.isChecked();
         priv.allowPrivateMessages = switchPrivateMessages.isChecked();
+        priv.allowFriendRequests = switchFriendRequests.isChecked();
+        priv.allowChatInvites = switchChatInvites.isChecked();
         p.privacy = priv;
 
         // Upload profile photo first
@@ -387,5 +398,10 @@ public class ProfileActivity extends AppCompatActivity {
 
     private void openSettings() {
         Toast.makeText(this, "Settings coming soon", Toast.LENGTH_SHORT).show();
+    }
+
+    private void openFriendsActivity() {
+        Intent intent = new Intent(this, FriendsListActivity.class);
+        startActivity(intent);
     }
 }

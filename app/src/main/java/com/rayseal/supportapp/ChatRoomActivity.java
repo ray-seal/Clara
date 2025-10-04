@@ -1,5 +1,6 @@
 package com.rayseal.supportapp;
 
+import android.app.AlertDialog;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
@@ -111,8 +112,12 @@ public class ChatRoomActivity extends AppCompatActivity {
 
         findViewById(R.id.btnBack).setOnClickListener(v -> finish());
         findViewById(R.id.btnRoomInfo).setOnClickListener(v -> showRoomInfo());
+        findViewById(R.id.btnInviteFriends).setOnClickListener(v -> showInviteFriendsDialog());
 
         btnSend.setOnClickListener(v -> sendMessage());
+
+        // Show invite button only for private rooms
+        checkIfPrivateRoom();
     }
 
     private void loadUserProfile() {
@@ -238,5 +243,117 @@ public class ChatRoomActivity extends AppCompatActivity {
         if (messagesRef != null && messagesListener != null) {
             messagesRef.removeEventListener(messagesListener);
         }
+    }
+
+    /**
+     * Check if this is a private room and show/hide invite button accordingly.
+     */
+    private void checkIfPrivateRoom() {
+        mDatabase.child("chatRooms").child(roomId).addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                ChatRoom room = snapshot.getValue(ChatRoom.class);
+                if (room != null && room.isPrivate) {
+                    findViewById(R.id.btnInviteFriends).setVisibility(View.VISIBLE);
+                }
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {}
+        });
+    }
+
+    /**
+     * Show dialog to invite friends to this private room.
+     */
+    private void showInviteFriendsDialog() {
+        // Get current user's friends
+        firestore.collection("friends")
+                .whereEqualTo("status", "accepted")
+                .get()
+                .addOnSuccessListener(querySnapshot -> {
+                    List<String> friendIds = new ArrayList<>();
+                    for (DocumentSnapshot doc : querySnapshot.getDocuments()) {
+                        Friend friend = doc.toObject(Friend.class);
+                        if (friend != null && friend.involvesUser(currentUserId)) {
+                            friendIds.add(friend.getOtherUserId(currentUserId));
+                        }
+                    }
+
+                    if (friendIds.isEmpty()) {
+                        Toast.makeText(this, "You don't have any friends to invite yet", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+
+                    showFriendSelectionDialog(friendIds);
+                })
+                .addOnFailureListener(e -> {
+                    Toast.makeText(this, "Error loading friends", Toast.LENGTH_SHORT).show();
+                });
+    }
+
+    /**
+     * Show dialog with list of friends to select for invitation.
+     */
+    private void showFriendSelectionDialog(List<String> friendIds) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Invite Friends to Chat");
+
+        LinearLayout layout = new LinearLayout(this);
+        layout.setOrientation(LinearLayout.VERTICAL);
+        layout.setPadding(50, 20, 50, 20);
+
+        List<CheckBox> checkBoxes = new ArrayList<>();
+        
+        for (String friendId : friendIds) {
+            // Load friend profile and create checkbox
+            firestore.collection("profiles").document(friendId)
+                    .get()
+                    .addOnSuccessListener(doc -> {
+                        if (doc.exists()) {
+                            Profile profile = doc.toObject(Profile.class);
+                            if (profile != null && profile.privacy.allowChatInvites) {
+                                CheckBox checkBox = new CheckBox(this);
+                                checkBox.setText(profile.displayName.isEmpty() ? "Anonymous" : profile.displayName);
+                                checkBox.setTag(friendId);
+                                layout.addView(checkBox);
+                                checkBoxes.add(checkBox);
+                            }
+                        }
+                    });
+        }
+
+        builder.setView(layout);
+
+        builder.setPositiveButton("Invite Selected", (dialog, which) -> {
+            List<String> selectedFriends = new ArrayList<>();
+            for (CheckBox cb : checkBoxes) {
+                if (cb.isChecked()) {
+                    selectedFriends.add((String) cb.getTag());
+                }
+            }
+            
+            if (!selectedFriends.isEmpty()) {
+                inviteFriendsToRoom(selectedFriends);
+            } else {
+                Toast.makeText(this, "No friends selected", Toast.LENGTH_SHORT).show();
+            }
+        });
+
+        builder.setNegativeButton("Cancel", null);
+        builder.show();
+    }
+
+    /**
+     * Add selected friends as members of this private room.
+     */
+    private void inviteFriendsToRoom(List<String> friendIds) {
+        DatabaseReference roomRef = mDatabase.child("chatRooms").child(roomId);
+        
+        for (String friendId : friendIds) {
+            roomRef.child("members").push().setValue(friendId);
+        }
+        
+        Toast.makeText(this, "Invitations sent to " + friendIds.size() + " friend(s)!", Toast.LENGTH_SHORT).show();
     }
 }

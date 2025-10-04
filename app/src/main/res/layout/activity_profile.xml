@@ -31,7 +31,15 @@
             <View
                 android:layout_width="0dp"
                 android:layout_height="0dp"
-                android:layout_weight="6"/>
+                android:layout_weight="5"/>
+            <ImageButton
+                android:id="@+id/btn_friends"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="@android:color/transparent"
+                android:src="@drawable/ic_person"
+                android:contentDescription="Friends"
+                android:layout_weight="1"/>
             <ImageButton
                 android:id="@+id/btn_settings"
                 android:layout_width="40dp"
@@ -304,6 +312,20 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Allow Private Messages"
+        android:textColor="@color/sky_blue"/>
+
+    <Switch
+        android:id="@+id/switch_priv_friend_requests"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Allow Friend Requests"
+        android:textColor="@color/sky_blue"/>
+
+    <Switch
+        android:id="@+id/switch_priv_chat_invites"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Allow Chat Invitations"
         android:textColor="@color/sky_blue"/>
 </LinearLayout>
 

@@ -29,6 +29,7 @@ android:theme="@style/Theme.SupportApp">
 <activity android:name=".ProfileActivity" />
 <activity android:name=".ChatRoomListActivity" />
 <activity android:name=".ChatRoomActivity" />
+<activity android:name=".FriendsListActivity" />
   
 </application>
 
