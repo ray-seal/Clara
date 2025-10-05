@@ -88,26 +88,36 @@ public class ChatRoomActivity extends AppCompatActivity {
                 }
                 // Only check/add membership for private rooms
                 if (room.isPrivate) {
-                    List<String> members = room.members != null ? room.members : new ArrayList<>();
-                    // Check if user has access (is creator or is in members list)
-                    if (!currentUserId.equals(room.createdBy) && !members.contains(currentUserId)) {
-                        // User is not the creator and not in members list - access denied
-                        Toast.makeText(ChatRoomActivity.this, "Access denied: You need to be invited to join this private room", Toast.LENGTH_LONG).show();
-                        finish();
-                        return;
-                    }
-                    // If user is creator but not in members list, add them
-                    if (currentUserId.equals(room.createdBy) && !members.contains(currentUserId)) {
-                        members.add(currentUserId);
-                        mDatabase.child("chatRooms").child(roomId).child("members").setValue(members)
-                            .addOnSuccessListener(aVoid -> {
-                                android.util.Log.d("ChatRoomActivity", "Successfully added creator to private room members");
-                            })
-                            .addOnFailureListener(e -> {
-                                android.util.Log.e("ChatRoomActivity", "Failed to add creator to private room", e);
-                            });
-                    }
-                    android.util.Log.d("ChatRoomActivity", "Access granted to private room: " + roomName);
+                    // Check if current user is admin first
+                    ModerationUtils.checkAdminStatus(isAdmin -> {
+                        if (isAdmin) {
+                            // Admins have access to all private rooms
+                            android.util.Log.d("ChatRoomActivity", "Admin access granted to private room: " + roomName);
+                            return;
+                        }
+                        
+                        // Regular access check for non-admin users
+                        List<String> members = room.members != null ? room.members : new ArrayList<>();
+                        // Check if user has access (is creator or is in members list)
+                        if (!currentUserId.equals(room.createdBy) && !members.contains(currentUserId)) {
+                            // User is not the creator and not in members list - access denied
+                            Toast.makeText(ChatRoomActivity.this, "Access denied: You need to be invited to join this private room", Toast.LENGTH_LONG).show();
+                            finish();
+                            return;
+                        }
+                        // If user is creator but not in members list, add them
+                        if (currentUserId.equals(room.createdBy) && !members.contains(currentUserId)) {
+                            members.add(currentUserId);
+                            mDatabase.child("chatRooms").child(roomId).child("members").setValue(members)
+                                .addOnSuccessListener(aVoid -> {
+                                    android.util.Log.d("ChatRoomActivity", "Successfully added creator to private room members");
+                                })
+                                .addOnFailureListener(e -> {
+                                    android.util.Log.e("ChatRoomActivity", "Failed to add creator to private room", e);
+                                });
+                        }
+                        android.util.Log.d("ChatRoomActivity", "Access granted to private room: " + roomName);
+                    });
                 } else {
                     android.util.Log.d("ChatRoomActivity", "Joined public room: " + roomName);
                 }

@@ -19,6 +19,18 @@ public class Profile {
     // Privacy settings for new features
     public boolean hidePostsFromFriends = false;
     public boolean isPrivate = false;
+    
+    // Admin and moderation features
+    public boolean isAdmin = false;
+    public boolean isBanned = false;
+    public String bannedBy = ""; // Admin user ID who banned this user
+    public long bannedAt = 0L;
+    public String banReason = "";
+    
+    // Moderation history
+    public int reportCount = 0; // Number of times this user has been reported
+    public int warningCount = 0; // Number of warnings given to this user
+    public long lastWarning = 0L;
 
     public Profile() {}
 }

@@ -78,19 +78,41 @@ public class ChatRoomListActivity extends AppCompatActivity {
 
     private void setupRecyclerView() {
         adapter = new ChatRoomAdapter(room -> {
-            // Only private rooms require the user to be a member
+            // Only private rooms require the user to be a member (unless admin)
             if (room.isPrivate) {
-                if (room.members == null || !room.members.contains(currentUserId)) {
-                    Toast.makeText(this, "You don't have access to this private room", Toast.LENGTH_SHORT).show();
-                    return;
-                }
+                // Check if current user is admin first
+                ModerationUtils.checkAdminStatus(isAdmin -> {
+                    if (isAdmin) {
+                        // Admins have access to all private rooms
+                        Intent intent = new Intent(ChatRoomListActivity.this, ChatRoomActivity.class);
+                        intent.putExtra("roomId", room.roomId);
+                        intent.putExtra("roomName", room.roomName);
+                        intent.putExtra("topic", room.topic);
+                        startActivity(intent);
+                        return;
+                    }
+                    
+                    // Regular access check for non-admin users
+                    if (room.members == null || !room.members.contains(currentUserId)) {
+                        Toast.makeText(this, "You don't have access to this private room", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    
+                    // User has access, proceed to chat room
+                    Intent intent = new Intent(ChatRoomListActivity.this, ChatRoomActivity.class);
+                    intent.putExtra("roomId", room.roomId);
+                    intent.putExtra("roomName", room.roomName);
+                    intent.putExtra("topic", room.topic);
+                    startActivity(intent);
+                });
+            } else {
+                // Public and topic rooms: anyone can enter
+                Intent intent = new Intent(ChatRoomListActivity.this, ChatRoomActivity.class);
+                intent.putExtra("roomId", room.roomId);
+                intent.putExtra("roomName", room.roomName);
+                intent.putExtra("topic", room.topic);
+                startActivity(intent);
             }
-            // Public and topic rooms: anyone can enter
-            Intent intent = new Intent(ChatRoomListActivity.this, ChatRoomActivity.class);
-            intent.putExtra("roomId", room.roomId);
-            intent.putExtra("roomName", room.roomName);
-            intent.putExtra("topic", room.topic);
-            startActivity(intent);
         });
 
         roomsRecyclerView.setLayoutManager(new LinearLayoutManager(this));
