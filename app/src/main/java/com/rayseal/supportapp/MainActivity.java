@@ -14,6 +14,8 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.analytics.FirebaseAnalytics;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.auth.AuthResult;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
@@ -110,6 +112,12 @@ public class MainActivity extends AppCompatActivity {
                             @Override
                             public void onComplete(@NonNull Task<AuthResult> task) {
                                 if (task.isSuccessful()) {
+                                    // Create user profile immediately after successful signup
+                                    FirebaseUser user = task.getResult().getUser();
+                                    if (user != null) {
+                                        createUserProfile(user.getUid(), emailText);
+                                    }
+                                    
                                     welcomeText.setText("Sign up successful! Welcome, " + emailText);
                                     Bundle signUpBundle = new Bundle();
                                     signUpBundle.putString(FirebaseAnalytics.Param.METHOD, "email_signup");
@@ -148,5 +156,25 @@ private void updateButtonsAfterAuth() {
     signUpButton.setVisibility(View.GONE);
     signInButton.setVisibility(View.GONE);
     continueButton.setVisibility(View.VISIBLE);
+}
+
+/**
+ * Create a new user profile in Firestore when user signs up
+ */
+private void createUserProfile(String userId, String email) {
+    Profile newProfile = new Profile();
+    newProfile.uid = userId;
+    newProfile.displayName = email.split("@")[0]; // Use email prefix as default display name
+    
+    FirebaseFirestore.getInstance()
+        .collection("profiles")
+        .document(userId)
+        .set(newProfile)
+        .addOnSuccessListener(aVoid -> {
+            android.util.Log.d("MainActivity", "User profile created successfully");
+        })
+        .addOnFailureListener(e -> {
+            android.util.Log.e("MainActivity", "Error creating user profile", e);
+        });
 }
 }

@@ -1,5 +1,6 @@
 package com.rayseal.supportapp;
 
+import com.google.firebase.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -13,7 +14,7 @@ public class Profile {
     public String coverPhotoUrl = "";
     public List<String> supportCategories = new ArrayList<>();
     public PrivacySettings privacy = new PrivacySettings();
-    public long memberSince = 0L;
+    public Timestamp memberSince = Timestamp.now();
     public int numPosts = 0;
     
     // Privacy settings for new features
@@ -33,4 +34,25 @@ public class Profile {
     public long lastWarning = 0L;
 
     public Profile() {}
+
+    /**
+     * Get the member since date as a long timestamp for compatibility
+     */
+    public long getMemberSinceMillis() {
+        if (memberSince != null) {
+            return memberSince.getSeconds() * 1000;
+        }
+        return System.currentTimeMillis(); // Fallback to current time
+    }
+
+    /**
+     * Set member since from a long timestamp (for migration from old format)
+     */
+    public void setMemberSinceFromMillis(long millis) {
+        if (millis > 0) {
+            memberSince = new Timestamp(millis / 1000, 0);
+        } else {
+            memberSince = Timestamp.now();
+        }
+    }
 }

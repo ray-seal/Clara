@@ -205,6 +205,22 @@ public class ProfileActivity extends AppCompatActivity {
         db.collection("profiles").document(profileUserId).get().addOnSuccessListener(doc -> {
             if (doc.exists()) {
                 userProfile = doc.toObject(Profile.class);
+                
+                // Migration: Handle old profiles with memberSince as long
+                if (userProfile != null && userProfile.memberSince == null) {
+                    // Check if there's a memberSince field stored as long
+                    Object memberSinceObj = doc.get("memberSince");
+                    if (memberSinceObj instanceof Long) {
+                        long memberSinceMillis = (Long) memberSinceObj;
+                        if (memberSinceMillis > 0) {
+                            userProfile.setMemberSinceFromMillis(memberSinceMillis);
+                            // Update the profile to save the new Timestamp format
+                            if (isOwnProfile) {
+                                db.collection("profiles").document(profileUserId).set(userProfile);
+                            }
+                        }
+                    }
+                }
             } else {
                 if (isOwnProfile) {
                     userProfile = new Profile();
@@ -217,7 +233,7 @@ public class ProfileActivity extends AppCompatActivity {
                     userProfile.coverPhotoUrl = "";
                     userProfile.supportCategories = new ArrayList<>();
                     userProfile.privacy = new PrivacySettings();
-                    userProfile.memberSince = System.currentTimeMillis();
+                    // memberSince is automatically set to current timestamp in constructor
                     userProfile.numPosts = 0;
                 } else {
                     // Other user's profile doesn't exist
@@ -314,7 +330,15 @@ public class ProfileActivity extends AppCompatActivity {
         // Stats
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
         if (isOwnProfile || priv.showStats) {
-            memberSinceText.setText("Member since: " + sdf.format(new Date(profile.memberSince)));
+            // Handle both Timestamp and long formats for backward compatibility
+            Date memberDate;
+            if (profile.memberSince != null) {
+                memberDate = profile.memberSince.toDate();
+            } else {
+                // Fallback to current date if timestamp is null
+                memberDate = new Date();
+            }
+            memberSinceText.setText("Member since: " + sdf.format(memberDate));
             numPostsText.setText("Posts: " + profile.numPosts);
         } else {
             memberSinceText.setText("Member since: Hidden");
