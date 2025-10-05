@@ -558,7 +558,7 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
                     );
                     
                     // Store in a collection that triggers cloud function
-                    firestore.collection("push_notifications")
+                    firestore.collection("push_notification_requests")
                         .add(pushRequest)
                         .addOnSuccessListener(pushDoc -> {
                             android.util.Log.d("PostAdapter", "Push notification queued");
@@ -704,133 +704,26 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
         return;
     }
     
-    // Get current user info
-    firestore.collection("users").document(currentUserId).get()
-        .addOnSuccessListener(documentSnapshot -> {
-            if (documentSnapshot.exists()) {
-                Profile currentUser = documentSnapshot.toObject(Profile.class);
-                String reporterName = currentUser != null && currentUser.displayName != null ? 
-                    currentUser.displayName : "Anonymous";
-                
-                // Create report
-                Report report = new Report();
-                report.reportType = "post";
-                report.reportedItemId = post.postId;
-                report.reportedUserId = post.userId;
-                report.reporterUserId = currentUserId;
-                report.reporterName = reporterName;
-                report.reportReason = reason.toLowerCase().replace(" ", "_");
-                report.reportDescription = description;
-                report.postContent = post.content;
-                report.postAuthor = post.authorName;
-                report.reportTimestamp = com.google.firebase.Timestamp.now();
-                report.status = "pending";
-                
-                // Save report to Firestore
-                firestore.collection("reports").add(report)
-                    .addOnSuccessListener(documentReference -> {
-                        report.reportId = documentReference.getId();
-                        documentReference.update("reportId", report.reportId);
-                        
-                        // Increment report count for the reported user
-                        if (post.userId != null && !post.userId.isEmpty()) {
-                            firestore.collection("users").document(post.userId)
-                                .update("reportCount", FieldValue.increment(1));
-                        }
-                        
-                        // Notify admins
-                        ModerationUtils.notifyAdmins("New Post Report", 
-                            "A post has been reported for " + reason, report.reportId);
-                        
-                        // Send report to Admin chat room
-                        sendReportToAdminChat(report, reason);
-                        
-                        Toast.makeText(context, "Report submitted successfully", Toast.LENGTH_SHORT).show();
-                    })
-                    .addOnFailureListener(e -> {
-                        Toast.makeText(context, "Failed to submit report", Toast.LENGTH_SHORT).show();
-                    });
-            }
-        })
-        .addOnFailureListener(e -> {
-            Toast.makeText(context, "Error getting user info", Toast.LENGTH_SHORT).show();
-        });
+    // Use ModerationUtils.createReport for proper handling of notifications and admin chat
+    ModerationUtils.createReport(
+        "post", 
+        post.postId, 
+        post.userId, 
+        reason.toLowerCase().replace(" ", "_"), 
+        description, 
+        context,
+        post.content,
+        post.authorName
+    );
+    
+    // Increment report count for the reported user
+    if (post.userId != null && !post.userId.isEmpty()) {
+        firestore.collection("profiles").document(post.userId)
+            .update("reportCount", FieldValue.increment(1));
+    }
   }
   
-  private void sendReportToAdminChat(Report report, String reason) {
-        // Find the Admin chat room
-        FirebaseDatabase.getInstance().getReference("chatRooms")
-            .orderByChild("name")
-            .equalTo("Admin")
-            .addListenerForSingleValueEvent(new ValueEventListener() {
-                @Override
-                public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                    final String adminRoomId;
-                    if (dataSnapshot.hasChildren()) {
-                        adminRoomId = dataSnapshot.getChildren().iterator().next().getKey();
-                    } else {
-                        adminRoomId = null;
-                    }
-                    
-                    if (adminRoomId != null) {
-                        // Send automated message to Admin chat
-                        String reportMessage = String.format(
-                            "🚨 NEW REPORT 🚨\n" +
-                            "Type: Post Report\n" +
-                            "Reason: %s\n" +
-                            "Reported User: %s\n" +
-                            "Reporter: %s\n" +
-                            "Post Content: \"%.100s%s\"\n" +
-                            "Report ID: %s\n" +
-                            "Time: %s",
-                            reason,
-                            report.postAuthor != null ? report.postAuthor : "Unknown",
-                            report.reporterName != null ? report.reporterName : "Anonymous",
-                            report.postContent != null ? report.postContent : "",
-                            report.postContent != null && report.postContent.length() > 100 ? "..." : "",
-                            report.reportId,
-                            new java.text.SimpleDateFormat("MMM dd, yyyy HH:mm", java.util.Locale.getDefault())
-                                .format(new java.util.Date())
-                        );
-                        
-                        ChatMessage adminMessage = new ChatMessage(
-                            "system",
-                            "Report System",
-                            reportMessage,
-                            adminRoomId
-                        );
-                        
-                        DatabaseReference messagesRef = FirebaseDatabase.getInstance()
-                            .getReference("messages").child(adminRoomId);
-                        String messageId = messagesRef.push().getKey();
-                        
-                        if (messageId != null) {
-                            adminMessage.messageId = messageId;
-                            messagesRef.child(messageId).setValue(adminMessage)
-                                .addOnSuccessListener(aVoid -> {
-                                    // Update room's last message
-                                    DatabaseReference roomRef = FirebaseDatabase.getInstance()
-                                        .getReference("chatRooms").child(adminRoomId);
-                                    roomRef.child("lastMessage").setValue("New report submitted");
-                                    roomRef.child("lastMessageTime").setValue(adminMessage.timestamp);
-                                })
-                                .addOnFailureListener(e -> {
-                                    android.util.Log.e("PostAdapter", "Failed to send report to admin chat", e);
-                                });
-                        }
-                    } else {
-                        android.util.Log.w("PostAdapter", "Admin chat room not found");
-                    }
-                }
-                
-                @Override
-                public void onCancelled(@NonNull DatabaseError databaseError) {
-                    android.util.Log.e("PostAdapter", "Failed to find admin chat room", databaseError.toException());
-                }
-            });
-    }
-    
-    private void setupDeleteButton(PostViewHolder holder, Post post, Context context, int position) {
+  private void setupDeleteButton(PostViewHolder holder, Post post, Context context, int position) {
         // Check if current user can delete this post (owner or admin)
         if (currentUserId != null) {
             firestore.collection("profiles").document(currentUserId)

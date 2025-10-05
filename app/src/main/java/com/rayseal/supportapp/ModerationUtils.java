@@ -148,6 +148,15 @@ public class ModerationUtils {
      */
     public static void createReport(String reportType, String reportedItemId, String reportedUserId,
                                    String reportReason, String reportDescription, Context context) {
+        createReport(reportType, reportedItemId, reportedUserId, reportReason, reportDescription, context, null, null);
+    }
+
+    /**
+     * Create a report for inappropriate content or user with additional data
+     */
+    public static void createReport(String reportType, String reportedItemId, String reportedUserId,
+                                   String reportReason, String reportDescription, Context context, 
+                                   String postContent, String postAuthor) {
         String currentUserId = FirebaseAuth.getInstance().getCurrentUser() != null ? 
             FirebaseAuth.getInstance().getCurrentUser().getUid() : null;
         
@@ -162,17 +171,29 @@ public class ModerationUtils {
             .document(currentUserId)
             .get()
             .addOnSuccessListener(doc -> {
-                String reporterName = "Anonymous";
+                final String reporterName;
                 if (doc.exists()) {
                     Profile profile = doc.toObject(Profile.class);
                     if (profile != null && profile.displayName != null && !profile.displayName.isEmpty()) {
                         reporterName = profile.displayName;
+                    } else {
+                        reporterName = "Anonymous";
                     }
+                } else {
+                    reporterName = "Anonymous";
                 }
                 
                 // Create the report
                 Report report = new Report(reportType, reportedItemId, reportedUserId,
                     currentUserId, reporterName, reportReason, reportDescription);
+                
+                // Add post-specific data if provided
+                if (postContent != null) {
+                    report.postContent = postContent;
+                }
+                if (postAuthor != null) {
+                    report.postAuthor = postAuthor;
+                }
                 
                 FirebaseFirestore.getInstance()
                     .collection("reports")
@@ -183,8 +204,30 @@ public class ModerationUtils {
                         
                         Toast.makeText(context, "Report submitted successfully", Toast.LENGTH_SHORT).show();
                         
-                        // Notify all admins
+                        // Notify all admins with push notifications and admin chat
                         notifyAdminsOfReport(report, context);
+                        
+                        // Send report to Admin chat room
+                        String reportMessage = String.format(
+                            "🚨 NEW REPORT 🚨\n" +
+                            "Type: %s Report\n" +
+                            "Reason: %s\n" +
+                            "Reported User: %s\n" +
+                            "Reporter: %s\n" +
+                            "Content: \"%.100s%s\"\n" +
+                            "Report ID: %s\n" +
+                            "Time: %s",
+                            reportType,
+                            reportReason,
+                            report.postAuthor != null ? report.postAuthor : "Unknown",
+                            reporterName,
+                            report.postContent != null ? report.postContent : "",
+                            report.postContent != null && report.postContent.length() > 100 ? "..." : "",
+                            report.reportId,
+                            new java.text.SimpleDateFormat("MMM dd, yyyy HH:mm", java.util.Locale.getDefault())
+                                .format(new java.util.Date())
+                        );
+                        sendNotificationToAdminChat(reportMessage);
                     })
                     .addOnFailureListener(e -> {
                         android.util.Log.e(TAG, "Error creating report", e);
