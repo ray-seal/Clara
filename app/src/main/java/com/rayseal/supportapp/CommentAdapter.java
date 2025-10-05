@@ -28,6 +28,7 @@ public class CommentAdapter extends RecyclerView.Adapter<CommentAdapter.CommentV
     @Override
     public void onBindViewHolder(@NonNull CommentViewHolder holder, int position) {
         Comment comment = comments.get(position);
+        android.util.Log.d("CommentAdapter", "Binding comment at position " + position + ": " + comment.content + " by " + comment.authorName);
         
         holder.commentContent.setText(comment.content);
         holder.commentAuthorName.setText(comment.authorName != null && !comment.authorName.isEmpty() 
@@ -51,8 +52,10 @@ public class CommentAdapter extends RecyclerView.Adapter<CommentAdapter.CommentV
     }
 
     public void addComment(Comment comment) {
+        android.util.Log.d("CommentAdapter", "Adding new comment: " + comment.content + " by " + comment.authorName);
         comments.add(comment);
         notifyItemInserted(comments.size() - 1);
+        android.util.Log.d("CommentAdapter", "Total comments now: " + comments.size());
     }
 
     static class CommentViewHolder extends RecyclerView.ViewHolder {

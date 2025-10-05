@@ -20,9 +20,22 @@
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/commentsRecyclerView"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="300dp"
         android:layout_marginBottom="16dp"
-        android:maxHeight="300dp"/>
+        android:scrollbars="vertical"
+        android:nestedScrollingEnabled="false"/>
+
+    <!-- No comments message -->
+    <TextView
+        android:id="@+id/noCommentsText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="No comments yet. Be the first to comment!"
+        android:textColor="#666666"
+        android:textSize="14sp"
+        android:gravity="center"
+        android:padding="20dp"
+        android:visibility="gone"/>
 
     <!-- Add Comment Section -->
     <LinearLayout

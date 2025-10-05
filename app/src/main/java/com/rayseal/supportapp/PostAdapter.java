@@ -345,6 +345,7 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
     RecyclerView commentsRecyclerView = dialogView.findViewById(R.id.commentsRecyclerView);
     EditText commentEditText = dialogView.findViewById(R.id.commentEditText);
     Button btnAddComment = dialogView.findViewById(R.id.btnAddComment);
+    TextView noCommentsText = dialogView.findViewById(R.id.noCommentsText);
     
     List<Comment> comments = new ArrayList<>();
     CommentAdapter commentAdapter = new CommentAdapter(comments);
@@ -356,23 +357,44 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
     // Load existing comments
     firestore.collection("comments")
         .whereEqualTo("postId", post.postId)
-        .orderBy("timestamp")
         .get()
         .addOnSuccessListener(querySnapshot -> {
             android.util.Log.d("PostAdapter", "Found " + querySnapshot.size() + " comments for post " + post.postId);
+            comments.clear(); // Clear existing comments first
             for (DocumentSnapshot doc : querySnapshot.getDocuments()) {
-                Comment comment = doc.toObject(Comment.class);
-                if (comment != null) {
-                    comment.commentId = doc.getId();
-                    comments.add(comment);
-                    android.util.Log.d("PostAdapter", "Added comment: " + comment.content);
+                try {
+                    Comment comment = doc.toObject(Comment.class);
+                    if (comment != null) {
+                        comment.commentId = doc.getId();
+                        comments.add(comment);
+                        android.util.Log.d("PostAdapter", "Added comment: " + comment.content + " by " + comment.authorName);
+                    } else {
+                        android.util.Log.w("PostAdapter", "Comment object is null for document: " + doc.getId());
+                    }
+                } catch (Exception e) {
+                    android.util.Log.e("PostAdapter", "Error parsing comment document: " + doc.getId(), e);
                 }
             }
+            
+            // Sort comments by timestamp manually
+            comments.sort((c1, c2) -> Long.compare(c1.timestamp, c2.timestamp));
+            
             commentAdapter.notifyDataSetChanged();
+            
+            // Show/hide no comments message
+            if (comments.isEmpty()) {
+                noCommentsText.setVisibility(View.VISIBLE);
+                commentsRecyclerView.setVisibility(View.GONE);
+            } else {
+                noCommentsText.setVisibility(View.GONE);
+                commentsRecyclerView.setVisibility(View.VISIBLE);
+            }
+            
+            android.util.Log.d("PostAdapter", "Successfully loaded and displayed " + comments.size() + " comments");
         })
         .addOnFailureListener(e -> {
             android.util.Log.e("PostAdapter", "Error loading comments", e);
-            Toast.makeText(context, "Error loading comments", Toast.LENGTH_SHORT).show();
+            Toast.makeText(context, "Error loading comments: " + e.getMessage(), Toast.LENGTH_SHORT).show();
         });
     
     // Add comment listener
@@ -408,11 +430,23 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
                 Comment newComment = new Comment(post.postId, currentUserId, authorName, 
                     authorProfilePicture, commentText, System.currentTimeMillis());
                 
+                android.util.Log.d("PostAdapter", "Creating comment: " + commentText + " by " + authorName + " for post " + post.postId);
+                
                 firestore.collection("comments")
                     .add(newComment)
                     .addOnSuccessListener(documentReference -> {
                         newComment.commentId = documentReference.getId();
+                        android.util.Log.d("PostAdapter", "Comment saved successfully with ID: " + newComment.commentId);
                         commentAdapter.addComment(newComment);
+                        
+                        // Show/hide no comments message
+                        if (comments.isEmpty()) {
+                            noCommentsText.setVisibility(View.VISIBLE);
+                            commentsRecyclerView.setVisibility(View.GONE);
+                        } else {
+                            noCommentsText.setVisibility(View.GONE);
+                            commentsRecyclerView.setVisibility(View.VISIBLE);
+                        }
                         
                         // Update post comment count
                         firestore.collection("posts").document(post.postId)
@@ -429,8 +463,10 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
                         commentEditText.setText("");
                         commentsRecyclerView.scrollToPosition(comments.size() - 1);
                     })
-                    .addOnFailureListener(e -> 
-                        Toast.makeText(context, "Failed to add comment", Toast.LENGTH_SHORT).show());
+                    .addOnFailureListener(e -> {
+                        android.util.Log.e("PostAdapter", "Failed to add comment", e);
+                        Toast.makeText(context, "Failed to add comment: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                    });
             });
     });
     
