@@ -29,7 +29,13 @@
     <View
       android:layout_width="0dp"
       android:layout_height="0dp"
-      android:layout_weight="5"/>
+      android:layout_weight="3"/>
+
+    <include layout="@layout/notification_icon_with_badge"
+      android:id="@+id/notificationIconLayout"
+      android:layout_width="wrap_content"
+      android:layout_height="wrap_content"
+      android:layout_weight="1"/>
 
     <Button
       android:id="@+id/chatButton"

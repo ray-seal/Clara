@@ -31,6 +31,11 @@
             android:textSize="20sp"
             android:textStyle="bold"
             android:gravity="center" />
+
+        <include layout="@layout/notification_icon_with_badge"
+            android:id="@+id/notificationIconLayout"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content" />
     </LinearLayout>
 
     <!-- Tab Layout -->

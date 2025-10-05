@@ -37,6 +37,7 @@ public class PublicFeedActivity extends AppCompatActivity {
     private RecyclerView postsRecyclerView;
     private PostAdapter postAdapter;
     private CheckBox anonymousCheckbox;
+    private NotificationIconHelper notificationIconHelper;
     private List<String> categories = Arrays.asList(
             "Anxiety","Depression","Insomnia","PTSD","Gender Dysphoria","Addiction","Other"
     );
@@ -70,6 +71,10 @@ public class PublicFeedActivity extends AppCompatActivity {
         postImagePreview = findViewById(R.id.postImagePreview);
         selectImageButton = findViewById(R.id.selectImageButton);
         anonymousCheckbox = findViewById(R.id.anonymousCheckbox);
+
+        // Initialize notification icon with badge
+        View notificationIconLayout = findViewById(R.id.notificationIconLayout);
+        notificationIconHelper = new NotificationIconHelper(this, notificationIconLayout);
 
         // PROFILE AVATAR IN TOP BAR
         ImageView userAvatar = findViewById(R.id.userAvatar);
@@ -668,6 +673,14 @@ public class PublicFeedActivity extends AppCompatActivity {
                 .set(fcmToken)
                 .addOnSuccessListener(aVoid -> Log.d(TAG, "FCM token saved successfully"))
                 .addOnFailureListener(e -> Log.e(TAG, "Error saving FCM token", e));
+        }
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (notificationIconHelper != null) {
+            notificationIconHelper.cleanup();
         }
     }
 }

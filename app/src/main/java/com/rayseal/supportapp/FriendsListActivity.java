@@ -22,6 +22,7 @@ public class FriendsListActivity extends AppCompatActivity {
     private ProgressBar progressBar;
     private Button btnFriends, btnRequests, btnSearch;
     private EditText searchInput;
+    private NotificationIconHelper notificationIconHelper;
 
     private FirebaseAuth mAuth;
     private FirebaseFirestore firestore;
@@ -59,6 +60,10 @@ public class FriendsListActivity extends AppCompatActivity {
         btnRequests = findViewById(R.id.btnRequests);
         btnSearch = findViewById(R.id.btnSearch);
         searchInput = findViewById(R.id.searchInput);
+
+        // Initialize notification icon with badge
+        View notificationIconLayout = findViewById(R.id.notificationIconLayout);
+        notificationIconHelper = new NotificationIconHelper(this, notificationIconLayout);
 
         findViewById(R.id.btnBack).setOnClickListener(v -> finish());
         findViewById(R.id.btnSearchUser).setOnClickListener(v -> searchUsers());
@@ -329,5 +334,13 @@ public class FriendsListActivity extends AppCompatActivity {
                 .addOnFailureListener(e -> {
                     Toast.makeText(this, "Failed to remove friend", Toast.LENGTH_SHORT).show();
                 });
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (notificationIconHelper != null) {
+            notificationIconHelper.cleanup();
+        }
     }
 }
