@@ -172,6 +172,7 @@ public class PublicFeedActivity extends AppCompatActivity {
     private void setupCategoryFilter() {
         List<String> filterOptions = new ArrayList<>();
         filterOptions.add("All");
+        filterOptions.add("Friends Posts"); // Add friends filter option
         filterOptions.addAll(categories);
         ArrayAdapter<String> adapter = new ArrayAdapter<String>(this,
                 android.R.layout.simple_spinner_item, filterOptions) {
@@ -454,7 +455,13 @@ public class PublicFeedActivity extends AppCompatActivity {
         posts.clear();
         postAdapter.notifyDataSetChanged();
         
-        // Build query
+        // Handle Friends Posts filter specially
+        if ("Friends Posts".equals(selectedFilter)) {
+            loadFriendsPosts();
+            return;
+        }
+        
+        // Build query for regular filters
         Query query = db.collection("posts");
         if (!selectedFilter.equals("All")) {
             query = query.whereArrayContains("categories", selectedFilter);
@@ -713,26 +720,325 @@ public class PublicFeedActivity extends AppCompatActivity {
      * Scroll to a specific post by ID (for notification navigation)
      */
     private void scrollToPost(String postId) {
-        if (postId == null || posts == null) return;
+        if (postId == null || posts == null) {
+            Log.w(TAG, "Cannot scroll to post - postId or posts is null");
+            return;
+        }
+        
+        Log.d(TAG, "Attempting to scroll to post: " + postId);
         
         for (int i = 0; i < posts.size(); i++) {
             if (postId.equals(posts.get(i).postId)) {
-                final int position = i; // Make final for lambda
-                postsRecyclerView.scrollToPosition(position);
-                // Highlight the post briefly
+                final int position = i;
+                Log.d(TAG, "Found post at position: " + position);
+                
+                // Scroll to position with smooth scrolling to center of screen
+                LinearLayoutManager layoutManager = (LinearLayoutManager) postsRecyclerView.getLayoutManager();
+                if (layoutManager != null) {
+                    // Use smooth scroll to position to center the post on screen
+                    layoutManager.scrollToPositionWithOffset(position, 
+                        postsRecyclerView.getHeight() / 3); // Show post in upper third for better visibility
+                }
+                
+                // Wait for scroll to complete, then highlight the post
                 postsRecyclerView.postDelayed(() -> {
                     if (position < posts.size()) {
-                        View targetView = postsRecyclerView.getLayoutManager().findViewByPosition(position);
+                        View targetView = layoutManager.findViewByPosition(position);
                         if (targetView != null) {
-                            // Briefly highlight the post
-                            int originalColor = targetView.getDrawingCacheBackgroundColor();
-                            targetView.setBackgroundColor(getResources().getColor(android.R.color.holo_blue_light));
-                            targetView.postDelayed(() -> targetView.setBackgroundColor(originalColor), 2000);
+                            Log.d(TAG, "Highlighting post at position: " + position);
+                            // Create a more prominent highlight effect
+                            highlightPost(targetView);
+                        } else {
+                            Log.w(TAG, "Target view not found for position: " + position);
+                            // If view isn't visible, try scrolling again
+                            postsRecyclerView.scrollToPosition(position);
+                            postsRecyclerView.postDelayed(() -> {
+                                View retryView = layoutManager.findViewByPosition(position);
+                                if (retryView != null) {
+                                    highlightPost(retryView);
+                                }
+                            }, 300);
                         }
                     }
-                }, 500);
+                }, 700); // Give more time for scroll animation
+                
+                // Clear the scroll intent so it doesn't trigger again
+                scrollToPostId = null;
                 break;
             }
         }
+    }
+    
+    /**
+     * Highlight a post with a prominent visual effect
+     */
+    private void highlightPost(View targetView) {
+        // Save original background
+        android.graphics.drawable.Drawable originalBackground = targetView.getBackground();
+        
+        // Create highlight animation
+        android.animation.ValueAnimator colorAnimator = android.animation.ValueAnimator.ofArgb(
+            getResources().getColor(android.R.color.transparent),
+            getResources().getColor(android.R.color.holo_blue_light),
+            getResources().getColor(android.R.color.transparent)
+        );
+        
+        colorAnimator.setDuration(2000); // 2 second animation
+        colorAnimator.setRepeatCount(1); // Repeat once for double flash
+        colorAnimator.addUpdateListener(animation -> {
+            targetView.setBackgroundColor((Integer) animation.getAnimatedValue());
+        });
+        
+        colorAnimator.addListener(new android.animation.AnimatorListenerAdapter() {
+            @Override
+            public void onAnimationEnd(android.animation.Animator animation) {
+                // Restore original background
+                targetView.setBackground(originalBackground);
+                
+                // Add a subtle border effect that lasts longer
+                targetView.postDelayed(() -> {
+                    targetView.setBackgroundResource(android.R.drawable.editbox_background);
+                    targetView.postDelayed(() -> targetView.setBackground(originalBackground), 3000);
+                }, 100);
+            }
+        });
+        
+        colorAnimator.start();
+        
+        // Also provide haptic feedback if available
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+            targetView.performHapticFeedback(android.view.HapticFeedbackConstants.CONFIRM);
+        }
+        
+        // Show a toast to confirm the post was found
+        Toast.makeText(this, "Navigated to your post", Toast.LENGTH_SHORT).show();
+    }
+    
+    /**
+     * Load posts from user's friends only
+     */
+    private void loadFriendsPosts() {
+        Log.d(TAG, "Loading friends posts");
+        FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
+        if (currentUser == null) {
+            Log.e(TAG, "No current user for friends posts");
+            return;
+        }
+        
+        String currentUserId = currentUser.getUid();
+        
+        // First, get the list of friends
+        db.collection("friends")
+            .whereEqualTo("status", "accepted")
+            .get()
+            .addOnSuccessListener(friendsSnapshot -> {
+                List<String> friendIds = new ArrayList<>();
+                friendIds.add(currentUserId); // Include current user's posts too
+                
+                for (QueryDocumentSnapshot friendDoc : friendsSnapshot) {
+                    String userId1 = friendDoc.getString("userId1");
+                    String userId2 = friendDoc.getString("userId2");
+                    
+                    // Add the friend's ID (the one that's not the current user)
+                    if (currentUserId.equals(userId1)) {
+                        friendIds.add(userId2);
+                    } else if (currentUserId.equals(userId2)) {
+                        friendIds.add(userId1);
+                    }
+                }
+                
+                Log.d(TAG, "Found " + friendIds.size() + " friends (including self)");
+                
+                if (friendIds.isEmpty()) {
+                    Log.w(TAG, "No friends found");
+                    Toast.makeText(this, "No posts from friends found", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                
+                // Due to Firestore limitations, we can only use 'in' operator with up to 10 values
+                // If more than 10 friends, we'll need to make multiple queries
+                if (friendIds.size() <= 10) {
+                    // Single query for 10 or fewer friends
+                    loadPostsForFriends(friendIds);
+                } else {
+                    // Multiple queries for more than 10 friends
+                    loadPostsForManyFriends(friendIds);
+                }
+            })
+            .addOnFailureListener(e -> {
+                Log.e(TAG, "Error loading friends", e);
+                Toast.makeText(this, "Error loading friends posts", Toast.LENGTH_SHORT).show();
+            });
+    }
+    
+    /**
+     * Load posts for 10 or fewer friends using a single query
+     */
+    private void loadPostsForFriends(List<String> friendIds) {
+        db.collection("posts")
+            .whereIn("userId", friendIds)
+            .orderBy("timestamp", Query.Direction.DESCENDING)
+            .get()
+            .addOnSuccessListener(querySnapshot -> {
+                processFriendsPostsResult(querySnapshot);
+            })
+            .addOnFailureListener(e -> {
+                Log.e(TAG, "Error loading friends posts", e);
+                Toast.makeText(this, "Error loading friends posts", Toast.LENGTH_SHORT).show();
+            });
+    }
+    
+    /**
+     * Load posts for more than 10 friends using multiple queries
+     */
+    private void loadPostsForManyFriends(List<String> friendIds) {
+        Log.d(TAG, "Loading posts for " + friendIds.size() + " friends using multiple queries");
+        
+        // Split friend IDs into chunks of 10
+        List<List<String>> chunks = new ArrayList<>();
+        for (int i = 0; i < friendIds.size(); i += 10) {
+            chunks.add(friendIds.subList(i, Math.min(friendIds.size(), i + 10)));
+        }
+        
+        List<QuerySnapshot> allResults = new ArrayList<>();
+        final int[] completedQueries = {0};
+        
+        for (List<String> chunk : chunks) {
+            db.collection("posts")
+                .whereIn("userId", chunk)
+                .get()
+                .addOnSuccessListener(querySnapshot -> {
+                    allResults.add(querySnapshot);
+                    completedQueries[0]++;
+                    
+                    // When all queries are complete, process results
+                    if (completedQueries[0] == chunks.size()) {
+                        // Combine all results
+                        List<DocumentSnapshot> allDocs = new ArrayList<>();
+                        for (QuerySnapshot result : allResults) {
+                            allDocs.addAll(result.getDocuments());
+                        }
+                        
+                        // Sort by timestamp (newest first)
+                        allDocs.sort((doc1, doc2) -> {
+                            Timestamp ts1 = doc1.getTimestamp("timestamp");
+                            Timestamp ts2 = doc2.getTimestamp("timestamp");
+                            if (ts1 == null && ts2 == null) return 0;
+                            if (ts1 == null) return 1;
+                            if (ts2 == null) return -1;
+                            return ts2.compareTo(ts1); // Descending order
+                        });
+                        
+                        // Process the sorted results
+                        processFriendsPostsFromDocs(allDocs);
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Error in chunk query", e);
+                    completedQueries[0]++;
+                    
+                    // Still try to process if we have partial results
+                    if (completedQueries[0] == chunks.size()) {
+                        List<DocumentSnapshot> allDocs = new ArrayList<>();
+                        for (QuerySnapshot result : allResults) {
+                            allDocs.addAll(result.getDocuments());
+                        }
+                        processFriendsPostsFromDocs(allDocs);
+                    }
+                });
+        }
+    }
+    
+    /**
+     * Process friends posts from QuerySnapshot
+     */
+    private void processFriendsPostsResult(QuerySnapshot querySnapshot) {
+        if (querySnapshot != null) {
+            processFriendsPostsFromDocs(querySnapshot.getDocuments());
+        }
+    }
+    
+    /**
+     * Process friends posts from a list of documents
+     */
+    private void processFriendsPostsFromDocs(List<DocumentSnapshot> docs) {
+        Log.d(TAG, "Processing " + docs.size() + " friends posts");
+        
+        if (docs.isEmpty()) {
+            Log.w(TAG, "No posts found from friends");
+            Toast.makeText(this, "No posts from friends found", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        
+        for (DocumentSnapshot doc : docs) {
+            String postId = doc.getId();
+            String content = doc.getString("content");
+            String imageUrl = doc.getString("imageUrl");
+            String userId = doc.getString("userId");
+            String authorName = doc.getString("authorName");
+            String authorProfilePicture = doc.getString("authorProfilePicture");
+            Timestamp timestamp = doc.getTimestamp("timestamp");
+            List<String> cats = (List<String>) doc.get("categories");
+            
+            // Apply null checks
+            if (content == null) content = "";
+            if (imageUrl == null) imageUrl = "";
+            if (authorName == null) authorName = "Anonymous";
+            if (authorProfilePicture == null) authorProfilePicture = "";
+            if (cats == null) cats = new ArrayList<>();
+            if (userId == null) userId = "";
+            
+            // Convert Timestamp to long for Post constructor
+            long timestampMillis = timestamp != null ? timestamp.toDate().getTime() : System.currentTimeMillis();
+            
+            Post post = new Post(postId, content, cats, imageUrl, userId, authorName, authorProfilePicture, timestampMillis);
+            
+            // Load additional post data (same as regular loadPosts)
+            Boolean isAnonymous = doc.getBoolean("isAnonymous");
+            post.isAnonymous = isAnonymous != null ? isAnonymous : false;
+            
+            // Load reactions
+            Map<String, Object> reactions = (Map<String, Object>) doc.get("reactions");
+            if (reactions != null) {
+                for (Map.Entry<String, Object> entry : reactions.entrySet()) {
+                    if (entry.getValue() instanceof Long) {
+                        post.reactions.put(entry.getKey(), ((Long) entry.getValue()).intValue());
+                    } else if (entry.getValue() instanceof Integer) {
+                        post.reactions.put(entry.getKey(), (Integer) entry.getValue());
+                    }
+                }
+            }
+            
+            // Load user reactions
+            Map<String, Object> userReactions = (Map<String, Object>) doc.get("userReactions");
+            if (userReactions != null) {
+                for (Map.Entry<String, Object> entry : userReactions.entrySet()) {
+                    if (entry.getValue() instanceof List) {
+                        post.userReactions.put(entry.getKey(), (List<String>) entry.getValue());
+                    }
+                }
+            }
+            
+            // Load comment count
+            Long commentCountLong = doc.getLong("commentCount");
+            post.commentCount = commentCountLong != null ? commentCountLong.intValue() : 0;
+            
+            posts.add(post);
+        }
+        
+        // Sort posts by timestamp (newest first) - shouldn't be needed due to Firestore ordering, but just in case
+        posts.sort((p1, p2) -> {
+            return Long.compare(p2.timestamp, p1.timestamp); // Descending order (newest first)
+        });
+        
+        Log.d(TAG, "Loaded " + posts.size() + " friends posts successfully");
+        postAdapter.notifyDataSetChanged();
+        
+        // Check if we need to scroll to a specific post
+        if (scrollToPostId != null) {
+            scrollToPost(scrollToPostId);
+        }
+        
+        Toast.makeText(this, "Loaded " + posts.size() + " posts from friends", Toast.LENGTH_SHORT).show();
     }
 }
