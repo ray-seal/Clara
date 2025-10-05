@@ -413,35 +413,91 @@ public class PublicFeedActivity extends AppCompatActivity {
     private void uploadPostToFirestore(Map<String, Object> post) {
         Log.d(TAG, "Uploading post to Firestore: " + post.toString());
         String userId = (String) post.get("userId");
+        String content = (String) post.get("content");
         
-        db.collection("posts").add(post)
-            .addOnSuccessListener(documentReference -> {
-                Log.d(TAG, "Post uploaded successfully with ID: " + documentReference.getId());
-                
-                // Update user's post count in their profile
-                if (userId != null && !userId.isEmpty()) {
-                    db.collection("profiles").document(userId)
-                        .update("numPosts", FieldValue.increment(1))
-                        .addOnSuccessListener(aVoid -> {
-                            Log.d(TAG, "User post count incremented successfully");
-                        })
-                        .addOnFailureListener(e -> {
-                            Log.e(TAG, "Failed to increment user post count", e);
-                        });
-                }
-                
-                postEditText.setText("");
-                for (CheckBox cb : categoryCheckBoxesList) cb.setChecked(false);
-                imageUri = null;
-                postImagePreview.setImageDrawable(null);
-                postImagePreview.setVisibility(View.GONE);
-                Toast.makeText(this, "Post added!", Toast.LENGTH_SHORT).show();
-                loadPosts();
-            })
-            .addOnFailureListener(e -> {
-                Toast.makeText(this, "Error posting: " + e.getMessage(), Toast.LENGTH_LONG).show();
-                Log.e(TAG, "Firestore add failed", e);
-            });
+        // Check for inappropriate content before posting
+        ModerationUtils.ContentAnalysis analysisResult = ModerationUtils.analyzeContent(content);
+        
+        if (analysisResult.shouldFlag) {
+            // Content flagged - create flagged content entry and don't publish immediately
+            String authorName = (String) post.get("authorName");
+            
+            FlaggedContent flaggedContent = new FlaggedContent();
+            flaggedContent.contentType = "post";
+            flaggedContent.authorUserId = userId;
+            flaggedContent.authorName = authorName;
+            flaggedContent.content = content;
+            flaggedContent.flaggedWords = analysisResult.flaggedWords;
+            flaggedContent.flagReason = analysisResult.flagReason;
+            flaggedContent.flaggedAt = com.google.firebase.Timestamp.now();
+            flaggedContent.status = "pending";
+            flaggedContent.contentVisible = false; // Hide until approved
+            
+            // Store categories for later publication
+            @SuppressWarnings("unchecked")
+            List<String> categories = (List<String>) post.get("categories");
+            flaggedContent.postCategories = categories != null ? categories.toArray(new String[0]) : new String[0];
+            
+            db.collection("flagged_content").add(flaggedContent)
+                .addOnSuccessListener(documentReference -> {
+                    flaggedContent.flagId = documentReference.getId();
+                    documentReference.update("flagId", flaggedContent.flagId);
+                    
+                    // Store the complete post data for later approval
+                    documentReference.update("pendingPostData", post);
+                    
+                    // Notify admins
+                    ModerationUtils.notifyAdmins("Content Flagged", 
+                        "A post has been flagged for " + analysisResult.flagReason + " and requires review", 
+                        flaggedContent.flagId);
+                    
+                    // Clear form
+                    clearPostForm();
+                    
+                    Toast.makeText(this, 
+                        "Your post contains potentially inappropriate content and has been sent for review. " +
+                        "It will be published after admin approval.", 
+                        Toast.LENGTH_LONG).show();
+                })
+                .addOnFailureListener(e -> {
+                    Toast.makeText(this, "Error submitting post for review: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                    Log.e(TAG, "Failed to save flagged content", e);
+                });
+        } else {
+            // Content is clean - proceed with normal posting
+            db.collection("posts").add(post)
+                .addOnSuccessListener(documentReference -> {
+                    Log.d(TAG, "Post uploaded successfully with ID: " + documentReference.getId());
+                    
+                    // Update user's post count in their profile
+                    if (userId != null && !userId.isEmpty()) {
+                        db.collection("profiles").document(userId)
+                            .update("numPosts", FieldValue.increment(1))
+                            .addOnSuccessListener(aVoid -> {
+                                Log.d(TAG, "User post count incremented successfully");
+                            })
+                            .addOnFailureListener(e -> {
+                                Log.e(TAG, "Failed to increment user post count", e);
+                            });
+                    }
+                    
+                    clearPostForm();
+                    Toast.makeText(this, "Post added!", Toast.LENGTH_SHORT).show();
+                    loadPosts();
+                })
+                .addOnFailureListener(e -> {
+                    Toast.makeText(this, "Error posting: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                    Log.e(TAG, "Firestore add failed", e);
+                });
+        }
+    }
+    
+    private void clearPostForm() {
+        postEditText.setText("");
+        for (CheckBox cb : categoryCheckBoxesList) cb.setChecked(false);
+        imageUri = null;
+        postImagePreview.setImageDrawable(null);
+        postImagePreview.setVisibility(View.GONE);
     }
 
     private void loadPosts() {

@@ -1,0 +1,182 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_margin="8dp"
+    app:cardCornerRadius="8dp"
+    app:cardElevation="4dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="16dp">
+
+        <!-- Profile Image -->
+        <ImageView
+            android:id="@+id/profileImage"
+            android:layout_width="60dp"
+            android:layout_height="60dp"
+            android:layout_marginEnd="16dp"
+            android:src="@drawable/default_profile_pic"
+            android:scaleType="centerCrop" />
+
+        <!-- User Info -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <!-- Name and Status Row -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginBottom="4dp">
+
+                <TextView
+                    android:id="@+id/userName"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="John Doe"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:textColor="#333333" />
+
+                <TextView
+                    android:id="@+id/adminStatus"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="ADMIN"
+                    android:textSize="10sp"
+                    android:textStyle="bold"
+                    android:textColor="#FFFFFF"
+                    android:background="#2196F3"
+                    android:padding="4dp"
+                    android:layout_marginStart="8dp"
+                    android:visibility="gone" />
+
+                <TextView
+                    android:id="@+id/banStatus"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="BANNED"
+                    android:textSize="10sp"
+                    android:textStyle="bold"
+                    android:textColor="#FFFFFF"
+                    android:background="#F44336"
+                    android:padding="4dp"
+                    android:layout_marginStart="8dp"
+                    android:visibility="gone" />
+            </LinearLayout>
+
+            <!-- Email -->
+            <TextView
+                android:id="@+id/userEmail"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="john.doe@email.com"
+                android:textSize="14sp"
+                android:textColor="#666666"
+                android:layout_marginBottom="8dp" />
+
+            <!-- Stats Row -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginBottom="8dp">
+
+                <TextView
+                    android:id="@+id/reportCount"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Reports: 0"
+                    android:textSize="12sp"
+                    android:textColor="#666666"
+                    android:layout_marginEnd="16dp" />
+
+                <TextView
+                    android:id="@+id/warningCount"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Warnings: 0"
+                    android:textSize="12sp"
+                    android:textColor="#666666" />
+            </LinearLayout>
+
+            <!-- Ban Info -->
+            <TextView
+                android:id="@+id/banInfo"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Banned on: Oct 05, 2025"
+                android:textSize="12sp"
+                android:textColor="#F44336"
+                android:textStyle="italic"
+                android:visibility="gone"
+                android:layout_marginBottom="4dp" />
+
+            <TextView
+                android:id="@+id/banReason"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Reason: Harassment"
+                android:textSize="12sp"
+                android:textColor="#F44336"
+                android:textStyle="italic"
+                android:visibility="gone"
+                android:layout_marginBottom="8dp" />
+
+            <!-- Action Buttons -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <Button
+                    android:id="@+id/btnViewProfile"
+                    android:layout_width="0dp"
+                    android:layout_height="32dp"
+                    android:layout_weight="1"
+                    android:layout_margin="2dp"
+                    android:text="View"
+                    android:textSize="11sp"
+                    android:backgroundTint="#607D8B" />
+
+                <Button
+                    android:id="@+id/btnWarn"
+                    android:layout_width="0dp"
+                    android:layout_height="32dp"
+                    android:layout_weight="1"
+                    android:layout_margin="2dp"
+                    android:text="Warn"
+                    android:textSize="11sp"
+                    android:backgroundTint="#FF9800" />
+
+                <Button
+                    android:id="@+id/btnBan"
+                    android:layout_width="0dp"
+                    android:layout_height="32dp"
+                    android:layout_weight="1"
+                    android:layout_margin="2dp"
+                    android:text="Ban"
+                    android:textSize="11sp"
+                    android:backgroundTint="#F44336" />
+
+                <Button
+                    android:id="@+id/btnAdmin"
+                    android:layout_width="0dp"
+                    android:layout_height="32dp"
+                    android:layout_weight="1"
+                    android:layout_margin="2dp"
+                    android:text="Make Admin"
+                    android:textSize="11sp"
+                    android:backgroundTint="#2196F3" />
+            </LinearLayout>
+        </LinearLayout>
+    </LinearLayout>
+</androidx.cardview.widget.CardView>

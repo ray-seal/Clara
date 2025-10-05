@@ -135,6 +135,9 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
       holder.commentCountText.setText(commentCount == 1 ? "1 comment" : commentCount + " comments");
       holder.commentsSection.setOnClickListener(v -> showCommentsDialog(context, post, position));
       
+      // Report button click listener
+      holder.reportButton.setOnClickListener(v -> showReportDialog(context, post));
+      
     } catch (Exception e) {
         android.util.Log.e("PostAdapter", "Error binding post at position " + position, e);
         // Set default values to prevent crash
@@ -609,6 +612,7 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
   public static class PostViewHolder extends RecyclerView.ViewHolder {
     TextView postContentText, postCategoriesText, authorNameText, commentCountText;
     TextView reactionYouGotThis, reactionNotAlone, reactionWithYou, reactionStrong, reactionSupport;
+    TextView reportButton;
     ImageView postImageView, authorProfilePicture;
     LinearLayout authorSection, commentsSection;
     
@@ -622,6 +626,7 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
       authorSection = itemView.findViewById(R.id.authorSection);
       commentCountText = itemView.findViewById(R.id.commentCountText);
       commentsSection = itemView.findViewById(R.id.commentsSection);
+      reportButton = itemView.findViewById(R.id.reportButton);
       
       reactionYouGotThis = itemView.findViewById(R.id.reactionYouGotThis);
       reactionNotAlone = itemView.findViewById(R.id.reactionNotAlone);
@@ -629,5 +634,109 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
       reactionStrong = itemView.findViewById(R.id.reactionStrong);
       reactionSupport = itemView.findViewById(R.id.reactionSupport);
     }
+  }
+  
+  private void showReportDialog(Context context, Post post) {
+    String[] reportReasons = {
+        "Spam",
+        "Harassment or bullying", 
+        "Inappropriate content",
+        "Hate speech",
+        "Misinformation",
+        "Other"
+    };
+    
+    AlertDialog.Builder builder = new AlertDialog.Builder(context);
+    builder.setTitle("Report Post");
+    builder.setItems(reportReasons, (dialog, which) -> {
+        String selectedReason = reportReasons[which];
+        
+        if (selectedReason.equals("Other")) {
+            showCustomReportDialog(context, post);
+        } else {
+            submitReport(context, post, selectedReason, "");
+        }
+    });
+    
+    builder.setNegativeButton("Cancel", null);
+    builder.show();
+  }
+  
+  private void showCustomReportDialog(Context context, Post post) {
+    AlertDialog.Builder builder = new AlertDialog.Builder(context);
+    builder.setTitle("Report Post - Other");
+    
+    EditText input = new EditText(context);
+    input.setHint("Please describe the issue...");
+    input.setMinLines(3);
+    builder.setView(input);
+    
+    builder.setPositiveButton("Submit", (dialog, which) -> {
+        String customReason = input.getText().toString().trim();
+        if (!customReason.isEmpty()) {
+            submitReport(context, post, "Other", customReason);
+        } else {
+            Toast.makeText(context, "Please provide a description", Toast.LENGTH_SHORT).show();
+        }
+    });
+    
+    builder.setNegativeButton("Cancel", null);
+    builder.show();
+  }
+  
+  private void submitReport(Context context, Post post, String reason, String description) {
+    if (currentUserId == null || currentUserId.isEmpty()) {
+        Toast.makeText(context, "Please log in to report", Toast.LENGTH_SHORT).show();
+        return;
+    }
+    
+    // Get current user info
+    firestore.collection("users").document(currentUserId).get()
+        .addOnSuccessListener(documentSnapshot -> {
+            if (documentSnapshot.exists()) {
+                Profile currentUser = documentSnapshot.toObject(Profile.class);
+                String reporterName = currentUser != null && currentUser.displayName != null ? 
+                    currentUser.displayName : "Anonymous";
+                
+                // Create report
+                Report report = new Report();
+                report.reportType = "post";
+                report.reportedItemId = post.postId;
+                report.reportedUserId = post.userId;
+                report.reporterUserId = currentUserId;
+                report.reporterName = reporterName;
+                report.reportReason = reason.toLowerCase().replace(" ", "_");
+                report.reportDescription = description;
+                report.postContent = post.content;
+                report.postAuthor = post.authorName;
+                report.reportTimestamp = com.google.firebase.Timestamp.now();
+                report.status = "pending";
+                
+                // Save report to Firestore
+                firestore.collection("reports").add(report)
+                    .addOnSuccessListener(documentReference -> {
+                        report.reportId = documentReference.getId();
+                        documentReference.update("reportId", report.reportId);
+                        
+                        // Increment report count for the reported user
+                        if (post.userId != null && !post.userId.isEmpty()) {
+                            firestore.collection("users").document(post.userId)
+                                .update("reportCount", FieldValue.increment(1));
+                        }
+                        
+                        // Notify admins
+                        ModerationUtils.notifyAdmins("New Post Report", 
+                            "A post has been reported for " + reason, report.reportId);
+                        
+                        Toast.makeText(context, "Report submitted successfully", Toast.LENGTH_SHORT).show();
+                    })
+                    .addOnFailureListener(e -> {
+                        Toast.makeText(context, "Failed to submit report", Toast.LENGTH_SHORT).show();
+                    });
+            }
+        })
+        .addOnFailureListener(e -> {
+            Toast.makeText(context, "Error getting user info", Toast.LENGTH_SHORT).show();
+        });
   }
 }

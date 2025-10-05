@@ -231,6 +231,46 @@ public class ModerationUtils {
     }
     
     /**
+     * General method to notify all admins
+     */
+    public static void notifyAdmins(String title, String message, String relatedId) {
+        FirebaseFirestore.getInstance()
+            .collection("profiles")
+            .whereEqualTo("isAdmin", true)
+            .get()
+            .addOnSuccessListener(querySnapshot -> {
+                for (Profile adminProfile : querySnapshot.toObjects(Profile.class)) {
+                    if (adminProfile.uid != null && !adminProfile.uid.isEmpty()) {
+                        // Create notification for admin
+                        Notification notification = new Notification(
+                            adminProfile.uid,
+                            "admin_notification",
+                            title,
+                            message,
+                            "",
+                            "",
+                            ""
+                        );
+                        notification.relatedPostId = relatedId;
+                        
+                        FirebaseFirestore.getInstance()
+                            .collection("notifications")
+                            .add(notification)
+                            .addOnSuccessListener(docRef -> {
+                                android.util.Log.d(TAG, "Admin notification sent to: " + adminProfile.uid);
+                            })
+                            .addOnFailureListener(e -> {
+                                android.util.Log.e(TAG, "Failed to send admin notification", e);
+                            });
+                    }
+                }
+            })
+            .addOnFailureListener(e -> {
+                android.util.Log.e(TAG, "Error getting admin users for notification", e);
+            });
+    }
+    
+    /**
      * Check if user is blocked by current user
      */
     public static void checkIfBlocked(String userId, OnBlockCheckListener listener) {

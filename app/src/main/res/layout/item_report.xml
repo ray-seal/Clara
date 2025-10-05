@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_margin="8dp"
+    app:cardCornerRadius="8dp"
+    app:cardElevation="4dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <!-- Header -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="8dp">
+
+            <TextView
+                android:id="@+id/reportType"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="POST"
+                android:textStyle="bold"
+                android:textColor="#FF5722"
+                android:background="#FFEBE3"
+                android:padding="4dp"
+                android:textSize="12sp" />
+
+            <TextView
+                android:id="@+id/reportReason"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="HARASSMENT"
+                android:textStyle="bold"
+                android:textColor="#F44336"
+                android:background="#FFEBEE"
+                android:padding="4dp"
+                android:textSize="12sp"
+                android:layout_marginStart="8dp" />
+
+            <View
+                android:layout_width="0dp"
+                android:layout_height="1dp"
+                android:layout_weight="1" />
+
+            <TextView
+                android:id="@+id/reportDate"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Oct 05, 2025 14:30"
+                android:textSize="12sp"
+                android:textColor="#666666" />
+        </LinearLayout>
+
+        <!-- Reporter Info -->
+        <TextView
+            android:id="@+id/reporterName"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Reported by: John Doe"
+            android:textSize="14sp"
+            android:textColor="#333333"
+            android:layout_marginBottom="8dp" />
+
+        <!-- Content -->
+        <TextView
+            android:id="@+id/contentText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="This is the content that was reported..."
+            android:textSize="14sp"
+            android:textColor="#444444"
+            android:background="#F5F5F5"
+            android:padding="8dp"
+            android:layout_marginBottom="4dp" />
+
+        <TextView
+            android:id="@+id/contentAuthor"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Author: Jane Smith"
+            android:textSize="12sp"
+            android:textColor="#666666"
+            android:layout_marginBottom="8dp" />
+
+        <!-- Description -->
+        <TextView
+            android:id="@+id/reportDescription"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Details: Additional details about the report..."
+            android:textSize="14sp"
+            android:textColor="#555555"
+            android:textStyle="italic"
+            android:layout_marginBottom="12dp"
+            android:visibility="gone" />
+
+        <!-- Action Buttons -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/btnDismiss"
+                android:layout_width="0dp"
+                android:layout_height="32dp"
+                android:layout_weight="1"
+                android:layout_margin="2dp"
+                android:text="Dismiss"
+                android:textSize="12sp"
+                android:backgroundTint="#9E9E9E" />
+
+            <Button
+                android:id="@+id/btnResolve"
+                android:layout_width="0dp"
+                android:layout_height="32dp"
+                android:layout_weight="1"
+                android:layout_margin="2dp"
+                android:text="Resolve"
+                android:textSize="12sp"
+                android:backgroundTint="#4CAF50" />
+
+            <Button
+                android:id="@+id/btnBanUser"
+                android:layout_width="0dp"
+                android:layout_height="32dp"
+                android:layout_weight="1"
+                android:layout_margin="2dp"
+                android:text="Ban User"
+                android:textSize="12sp"
+                android:backgroundTint="#F44336" />
+
+            <Button
+                android:id="@+id/btnDeleteContent"
+                android:layout_width="0dp"
+                android:layout_height="32dp"
+                android:layout_weight="1"
+                android:layout_margin="2dp"
+                android:text="Delete"
+                android:textSize="12sp"
+                android:backgroundTint="#FF9800" />
+        </LinearLayout>
+    </LinearLayout>
+</androidx.cardview.widget.CardView>
