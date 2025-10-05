@@ -235,100 +235,6 @@
                 android:textColor="@color/orange"
                 android:textStyle="italic"/>
 
-            <!-- Privacy Switches neatly stacked -->
-            <TextView
-                android:text="Privacy Controls"
-                android:textStyle="bold"
-                android:textColor="@color/sky_blue"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:paddingTop="12dp"
-                android:paddingBottom="4dp"/>
-
-            <LinearLayout
-    android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:orientation="vertical"
-    android:paddingBottom="12dp">
-
-    <Switch
-        android:id="@+id/switch_priv_display_name"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Show Display Name"
-        android:textColor="@color/sky_blue"/>
-
-    <Switch
-        android:id="@+id/switch_priv_actual_name"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Show Actual Name"
-        android:textColor="@color/sky_blue"/>
-
-    <Switch
-        android:id="@+id/switch_priv_profile_pic"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Show Profile Picture"
-        android:textColor="@color/sky_blue"/>
-
-    <Switch
-        android:id="@+id/switch_priv_cover_photo"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Show Cover Photo"
-        android:textColor="@color/sky_blue"/>
-
-    <Switch
-        android:id="@+id/switch_priv_categories"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Show Support Categories"
-        android:textColor="@color/sky_blue"/>
-
-    <Switch
-        android:id="@+id/switch_priv_bio"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Show Bio"
-        android:textColor="@color/sky_blue"/>
-
-    <Switch
-        android:id="@+id/switch_priv_contact"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Show Contact/Link"
-        android:textColor="@color/sky_blue"/>
-
-    <Switch
-        android:id="@+id/switch_priv_stats"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Show Stats"
-        android:textColor="@color/sky_blue"/>
-
-    <Switch
-        android:id="@+id/switch_priv_messages"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Allow Private Messages"
-        android:textColor="@color/sky_blue"/>
-
-    <Switch
-        android:id="@+id/switch_priv_friend_requests"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Allow Friend Requests"
-        android:textColor="@color/sky_blue"/>
-
-    <Switch
-        android:id="@+id/switch_priv_chat_invites"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Allow Chat Invitations"
-        android:textColor="@color/sky_blue"/>
-</LinearLayout>
-
             <!-- Edit/Save/Cancel Buttons -->
             <LinearLayout
                 android:layout_width="match_parent"
@@ -363,14 +269,6 @@
                     android:backgroundTint="@color/sky_blue"
                     android:textColor="@color/white"
                     android:visibility="gone"/>
-                <Button
-                    android:id="@+id/btn_edit"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Edit"
-                    android:backgroundTint="@color/orange"
-                    android:textColor="@color/white"
-                    android:layout_marginStart="8dp"/>
             </LinearLayout>
 
             <ProgressBar

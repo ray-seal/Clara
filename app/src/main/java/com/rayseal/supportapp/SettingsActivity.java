@@ -31,7 +31,12 @@ public class SettingsActivity extends AppCompatActivity {
     private Switch hidePostsFromFriendsSwitch;
     private Switch privateProfileSwitch;
     private Switch pushNotificationsSwitch;
-    private Switch emailNotificationsSwitch;
+    
+    // Privacy control switches
+    private Switch switchDisplayName, switchActualName, switchProfilePic, switchCoverPhoto,
+            switchCategories, switchBio, switchContact, switchStats, switchPrivateMessages,
+            switchFriendRequests, switchChatInvites;
+    
     private Button logoutButton;
     
     private FirebaseFirestore db;
@@ -76,7 +81,20 @@ public class SettingsActivity extends AppCompatActivity {
         hidePostsFromFriendsSwitch = findViewById(R.id.hidePostsFromFriendsSwitch);
         privateProfileSwitch = findViewById(R.id.privateProfileSwitch);
         pushNotificationsSwitch = findViewById(R.id.pushNotificationsSwitch);
-        emailNotificationsSwitch = findViewById(R.id.emailNotificationsSwitch);
+        
+        // Privacy control switches
+        switchDisplayName = findViewById(R.id.switch_priv_display_name);
+        switchActualName = findViewById(R.id.switch_priv_actual_name);
+        switchProfilePic = findViewById(R.id.switch_priv_profile_pic);
+        switchCoverPhoto = findViewById(R.id.switch_priv_cover_photo);
+        switchCategories = findViewById(R.id.switch_priv_categories);
+        switchBio = findViewById(R.id.switch_priv_bio);
+        switchContact = findViewById(R.id.switch_priv_contact);
+        switchStats = findViewById(R.id.switch_priv_stats);
+        switchPrivateMessages = findViewById(R.id.switch_priv_messages);
+        switchFriendRequests = findViewById(R.id.switch_priv_friend_requests);
+        switchChatInvites = findViewById(R.id.switch_priv_chat_invites);
+        
         logoutButton = findViewById(R.id.logoutButton);
     }
 
@@ -113,9 +131,22 @@ public class SettingsActivity extends AppCompatActivity {
                         hidePostsFromFriendsSwitch.setChecked(profile.hidePostsFromFriends);
                         privateProfileSwitch.setChecked(profile.isPrivate);
                         
-                        // Load notification preferences (you can extend Profile class to include these)
+                        // Load detailed privacy controls
+                        PrivacySettings privacy = profile.privacy != null ? profile.privacy : new PrivacySettings();
+                        switchDisplayName.setChecked(privacy.showDisplayName);
+                        switchActualName.setChecked(privacy.showActualName);
+                        switchProfilePic.setChecked(privacy.showProfilePicture);
+                        switchCoverPhoto.setChecked(privacy.showCoverPhoto);
+                        switchCategories.setChecked(privacy.showSupportCategories);
+                        switchBio.setChecked(privacy.showBio);
+                        switchContact.setChecked(privacy.showContact);
+                        switchStats.setChecked(privacy.showStats);
+                        switchPrivateMessages.setChecked(privacy.allowPrivateMessages);
+                        switchFriendRequests.setChecked(privacy.allowFriendRequests);
+                        switchChatInvites.setChecked(privacy.allowChatInvites);
+                        
+                        // Load notification preferences
                         pushNotificationsSwitch.setChecked(true); // Default value
-                        emailNotificationsSwitch.setChecked(false); // Default value
                     }
                 }
             })
@@ -207,6 +238,22 @@ public class SettingsActivity extends AppCompatActivity {
                 }
                 profile.hidePostsFromFriends = hidePostsFromFriendsSwitch.isChecked();
                 profile.isPrivate = privateProfileSwitch.isChecked();
+                
+                // Update detailed privacy controls
+                if (profile.privacy == null) {
+                    profile.privacy = new PrivacySettings();
+                }
+                profile.privacy.showDisplayName = switchDisplayName.isChecked();
+                profile.privacy.showActualName = switchActualName.isChecked();
+                profile.privacy.showProfilePicture = switchProfilePic.isChecked();
+                profile.privacy.showCoverPhoto = switchCoverPhoto.isChecked();
+                profile.privacy.showSupportCategories = switchCategories.isChecked();
+                profile.privacy.showBio = switchBio.isChecked();
+                profile.privacy.showContact = switchContact.isChecked();
+                profile.privacy.showStats = switchStats.isChecked();
+                profile.privacy.allowPrivateMessages = switchPrivateMessages.isChecked();
+                profile.privacy.allowFriendRequests = switchFriendRequests.isChecked();
+                profile.privacy.allowChatInvites = switchChatInvites.isChecked();
                 
                 // Save updated profile
                 db.collection("profiles").document(currentUserId)

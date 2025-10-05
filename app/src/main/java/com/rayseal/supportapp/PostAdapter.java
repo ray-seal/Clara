@@ -23,6 +23,12 @@ import com.bumptech.glide.Glide;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.FieldValue;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.ValueEventListener;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import androidx.annotation.NonNull;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.WriteBatch;
 import com.google.firebase.firestore.DocumentReference;
@@ -110,11 +116,15 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
                         android.util.Log.d("PostAdapter", "Opening image viewer with URL: " + post.imageUrl);
                         Intent intent = new Intent(context, ImageViewerActivity.class);
                         intent.putExtra("imageUrl", post.imageUrl);
+                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                         context.startActivity(intent);
                     } else {
                         android.util.Log.e("PostAdapter", "Image URL is null or empty");
                         Toast.makeText(context, "Image not available", Toast.LENGTH_SHORT).show();
                     }
+                } catch (android.content.ActivityNotFoundException e) {
+                    android.util.Log.e("PostAdapter", "ImageViewerActivity not found", e);
+                    Toast.makeText(context, "Image viewer not available", Toast.LENGTH_SHORT).show();
                 } catch (Exception e) {
                     android.util.Log.e("PostAdapter", "Error opening image viewer", e);
                     Toast.makeText(context, "Error opening image", Toast.LENGTH_SHORT).show();
@@ -137,6 +147,9 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
       
       // Report button click listener
       holder.reportButton.setOnClickListener(v -> showReportDialog(context, post));
+      
+      // Delete button - show for post owner or admins
+      setupDeleteButton(holder, post, context, position);
       
     } catch (Exception e) {
         android.util.Log.e("PostAdapter", "Error binding post at position " + position, e);
@@ -362,7 +375,7 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
     TextView noCommentsText = dialogView.findViewById(R.id.noCommentsText);
     
     List<Comment> comments = new ArrayList<>();
-    CommentAdapter commentAdapter = new CommentAdapter(comments);
+    CommentAdapter commentAdapter = new CommentAdapter(comments, post.postId, context);
     commentsRecyclerView.setLayoutManager(new LinearLayoutManager(context));
     commentsRecyclerView.setAdapter(commentAdapter);
     
@@ -612,7 +625,7 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
   public static class PostViewHolder extends RecyclerView.ViewHolder {
     TextView postContentText, postCategoriesText, authorNameText, commentCountText;
     TextView reactionYouGotThis, reactionNotAlone, reactionWithYou, reactionStrong, reactionSupport;
-    TextView reportButton;
+    TextView reportButton, deleteButton;
     ImageView postImageView, authorProfilePicture;
     LinearLayout authorSection, commentsSection;
     
@@ -627,6 +640,7 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
       commentCountText = itemView.findViewById(R.id.commentCountText);
       commentsSection = itemView.findViewById(R.id.commentsSection);
       reportButton = itemView.findViewById(R.id.reportButton);
+      deleteButton = itemView.findViewById(R.id.deleteButton);
       
       reactionYouGotThis = itemView.findViewById(R.id.reactionYouGotThis);
       reactionNotAlone = itemView.findViewById(R.id.reactionNotAlone);
@@ -728,6 +742,9 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
                         ModerationUtils.notifyAdmins("New Post Report", 
                             "A post has been reported for " + reason, report.reportId);
                         
+                        // Send report to Admin chat room
+                        sendReportToAdminChat(report, reason);
+                        
                         Toast.makeText(context, "Report submitted successfully", Toast.LENGTH_SHORT).show();
                     })
                     .addOnFailureListener(e -> {
@@ -739,4 +756,227 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
             Toast.makeText(context, "Error getting user info", Toast.LENGTH_SHORT).show();
         });
   }
+  
+  private void sendReportToAdminChat(Report report, String reason) {
+        // Find the Admin chat room
+        FirebaseDatabase.getInstance().getReference("chatRooms")
+            .orderByChild("name")
+            .equalTo("Admin")
+            .addListenerForSingleValueEvent(new ValueEventListener() {
+                @Override
+                public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                    final String adminRoomId;
+                    if (dataSnapshot.hasChildren()) {
+                        adminRoomId = dataSnapshot.getChildren().iterator().next().getKey();
+                    } else {
+                        adminRoomId = null;
+                    }
+                    
+                    if (adminRoomId != null) {
+                        // Send automated message to Admin chat
+                        String reportMessage = String.format(
+                            "🚨 NEW REPORT 🚨\n" +
+                            "Type: Post Report\n" +
+                            "Reason: %s\n" +
+                            "Reported User: %s\n" +
+                            "Reporter: %s\n" +
+                            "Post Content: \"%.100s%s\"\n" +
+                            "Report ID: %s\n" +
+                            "Time: %s",
+                            reason,
+                            report.postAuthor != null ? report.postAuthor : "Unknown",
+                            report.reporterName != null ? report.reporterName : "Anonymous",
+                            report.postContent != null ? report.postContent : "",
+                            report.postContent != null && report.postContent.length() > 100 ? "..." : "",
+                            report.reportId,
+                            new java.text.SimpleDateFormat("MMM dd, yyyy HH:mm", java.util.Locale.getDefault())
+                                .format(new java.util.Date())
+                        );
+                        
+                        ChatMessage adminMessage = new ChatMessage(
+                            "system",
+                            "Report System",
+                            reportMessage,
+                            adminRoomId
+                        );
+                        
+                        DatabaseReference messagesRef = FirebaseDatabase.getInstance()
+                            .getReference("messages").child(adminRoomId);
+                        String messageId = messagesRef.push().getKey();
+                        
+                        if (messageId != null) {
+                            adminMessage.messageId = messageId;
+                            messagesRef.child(messageId).setValue(adminMessage)
+                                .addOnSuccessListener(aVoid -> {
+                                    // Update room's last message
+                                    DatabaseReference roomRef = FirebaseDatabase.getInstance()
+                                        .getReference("chatRooms").child(adminRoomId);
+                                    roomRef.child("lastMessage").setValue("New report submitted");
+                                    roomRef.child("lastMessageTime").setValue(adminMessage.timestamp);
+                                })
+                                .addOnFailureListener(e -> {
+                                    android.util.Log.e("PostAdapter", "Failed to send report to admin chat", e);
+                                });
+                        }
+                    } else {
+                        android.util.Log.w("PostAdapter", "Admin chat room not found");
+                    }
+                }
+                
+                @Override
+                public void onCancelled(@NonNull DatabaseError databaseError) {
+                    android.util.Log.e("PostAdapter", "Failed to find admin chat room", databaseError.toException());
+                }
+            });
+    }
+    
+    private void setupDeleteButton(PostViewHolder holder, Post post, Context context, int position) {
+        // Check if current user can delete this post (owner or admin)
+        if (currentUserId != null) {
+            firestore.collection("profiles").document(currentUserId)
+                .get()
+                .addOnSuccessListener(documentSnapshot -> {
+                    boolean isAdmin = false;
+                    if (documentSnapshot.exists()) {
+                        Profile profile = documentSnapshot.toObject(Profile.class);
+                        isAdmin = profile != null && profile.isAdmin;
+                    }
+                    
+                    // Show delete button if user is owner or admin
+                    boolean canDelete = currentUserId.equals(post.userId) || isAdmin;
+                    holder.deleteButton.setVisibility(canDelete ? View.VISIBLE : View.GONE);
+                    
+                    if (canDelete) {
+                        holder.deleteButton.setOnClickListener(v -> showDeleteConfirmation(context, post, position));
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    // Only show if user owns the post
+                    boolean ownerCanDelete = currentUserId.equals(post.userId);
+                    holder.deleteButton.setVisibility(ownerCanDelete ? View.VISIBLE : View.GONE);
+                    if (ownerCanDelete) {
+                        holder.deleteButton.setOnClickListener(v -> showDeleteConfirmation(context, post, position));
+                    }
+                });
+        } else {
+            holder.deleteButton.setVisibility(View.GONE);
+        }
+    }
+    
+    private void showDeleteConfirmation(Context context, Post post, int position) {
+        new AlertDialog.Builder(context)
+            .setTitle("Delete Post")
+            .setMessage("Are you sure you want to delete this post? This action cannot be undone.")
+            .setPositiveButton("Delete", (dialog, which) -> deletePost(context, post, position))
+            .setNegativeButton("Cancel", null)
+            .show();
+    }
+    
+    private void deletePost(Context context, Post post, int position) {
+        if (post.postId == null || post.postId.isEmpty()) {
+            Toast.makeText(context, "Error: Cannot delete post", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        
+        // Delete post from Firestore
+        firestore.collection("posts").document(post.postId)
+            .delete()
+            .addOnSuccessListener(aVoid -> {
+                // Remove from local list and notify adapter
+                if (position >= 0 && position < posts.size()) {
+                    posts.remove(position);
+                    notifyItemRemoved(position);
+                    notifyItemRangeChanged(position, posts.size());
+                }
+                Toast.makeText(context, "Post deleted successfully", Toast.LENGTH_SHORT).show();
+                
+                // Send notification to Admin chat about deletion
+                sendDeletionNotificationToAdminChat(post, currentUserId);
+            })
+            .addOnFailureListener(e -> {
+                Toast.makeText(context, "Failed to delete post: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                android.util.Log.e("PostAdapter", "Failed to delete post", e);
+            });
+    }
+    
+    private void sendDeletionNotificationToAdminChat(Post post, String deletedByUserId) {
+        // Get the deleter's profile info
+        firestore.collection("profiles").document(deletedByUserId)
+            .get()
+            .addOnSuccessListener(documentSnapshot -> {
+                final String deleterName;
+                final boolean isAdmin;
+                
+                if (documentSnapshot.exists()) {
+                    Profile profile = documentSnapshot.toObject(Profile.class);
+                    if (profile != null) {
+                        deleterName = profile.displayName != null ? profile.displayName : "Unknown";
+                        isAdmin = profile.isAdmin;
+                    } else {
+                        deleterName = "Unknown";
+                        isAdmin = false;
+                    }
+                } else {
+                    deleterName = "Unknown";
+                    isAdmin = false;
+                }
+                
+                // Find the Admin chat room and send notification
+                FirebaseDatabase.getInstance().getReference("chatRooms")
+                    .orderByChild("name")
+                    .equalTo("Admin")
+                    .addListenerForSingleValueEvent(new ValueEventListener() {
+                        @Override
+                        public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                            final String adminRoomId;
+                            if (dataSnapshot.hasChildren()) {
+                                adminRoomId = dataSnapshot.getChildren().iterator().next().getKey();
+                            } else {
+                                adminRoomId = null;
+                            }
+                            
+                            if (adminRoomId != null) {
+                                String deletionMessage = String.format(
+                                    "🗑️ POST DELETED 🗑️\n" +
+                                    "Deleted by: %s %s\n" +
+                                    "Original Author: %s\n" +
+                                    "Content: \"%.100s%s\"\n" +
+                                    "Time: %s",
+                                    deleterName,
+                                    isAdmin ? "(Admin)" : "(Owner)",
+                                    post.authorName != null ? post.authorName : "Unknown",
+                                    post.content != null ? post.content : "",
+                                    post.content != null && post.content.length() > 100 ? "..." : "",
+                                    new java.text.SimpleDateFormat("MMM dd, yyyy HH:mm", java.util.Locale.getDefault())
+                                        .format(new java.util.Date())
+                                );
+                                
+                                ChatMessage adminMessage = new ChatMessage(
+                                    "system",
+                                    "Moderation System",
+                                    deletionMessage,
+                                    adminRoomId
+                                );
+                                
+                                DatabaseReference messagesRef = FirebaseDatabase.getInstance()
+                                    .getReference("messages").child(adminRoomId);
+                                String messageId = messagesRef.push().getKey();
+                                
+                                if (messageId != null) {
+                                    adminMessage.messageId = messageId;
+                                    messagesRef.child(messageId).setValue(adminMessage);
+                                }
+                            }
+                        }
+                        
+                        @Override
+                        public void onCancelled(@NonNull DatabaseError databaseError) {
+                            android.util.Log.e("PostAdapter", "Failed to find admin chat room for deletion notification", databaseError.toException());
+                        }
+                    });
+            })
+            .addOnFailureListener(e -> {
+                android.util.Log.e("PostAdapter", "Failed to get deleter profile info", e);
+            });
+    }
 }

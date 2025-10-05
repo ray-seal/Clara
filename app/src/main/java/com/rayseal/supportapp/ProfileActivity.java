@@ -38,10 +38,7 @@ public class ProfileActivity extends AppCompatActivity {
     private EditText editDisplayName, editActualName, editBio, editContact;
     private LinearLayout categoriesLayout;
     private TextView memberSinceText, numPostsText;
-    private Switch switchDisplayName, switchActualName, switchProfilePic, switchCoverPhoto,
-            switchCategories, switchBio, switchContact, switchStats, switchPrivateMessages,
-            switchFriendRequests, switchChatInvites;
-    private Button btnSave, btnCancel, btnEdit, btnAddFriend;
+    private Button btnSave, btnCancel, btnAddFriend;
     private ProgressBar progressBar;
 
     private Uri profilePicUri, coverPhotoUri;
@@ -76,21 +73,8 @@ public class ProfileActivity extends AppCompatActivity {
         memberSinceText = findViewById(R.id.txt_member_since);
         numPostsText = findViewById(R.id.txt_num_posts);
 
-        switchDisplayName = findViewById(R.id.switch_priv_display_name);
-        switchActualName = findViewById(R.id.switch_priv_actual_name);
-        switchProfilePic = findViewById(R.id.switch_priv_profile_pic);
-        switchCoverPhoto = findViewById(R.id.switch_priv_cover_photo);
-        switchCategories = findViewById(R.id.switch_priv_categories);
-        switchBio = findViewById(R.id.switch_priv_bio);
-        switchContact = findViewById(R.id.switch_priv_contact);
-        switchStats = findViewById(R.id.switch_priv_stats);
-        switchPrivateMessages = findViewById(R.id.switch_priv_messages);
-        switchFriendRequests = findViewById(R.id.switch_priv_friend_requests);
-        switchChatInvites = findViewById(R.id.switch_priv_chat_invites);
-
         btnSave = findViewById(R.id.btn_save);
         btnCancel = findViewById(R.id.btn_cancel);
-        btnEdit = findViewById(R.id.btn_edit);
         btnAddFriend = findViewById(R.id.btn_add_friend);
 
         progressBar = findViewById(R.id.progressBar);
@@ -104,12 +88,7 @@ public class ProfileActivity extends AppCompatActivity {
         findViewById(R.id.btn_friends).setOnClickListener(v -> openFriendsActivity());
         findViewById(R.id.btn_settings).setOnClickListener(v -> openSettings());
 
-        // Edit controls - redirect to settings for own profile
-        btnEdit.setOnClickListener(v -> {
-            if (viewingUserId == null) { // Viewing own profile
-                openSettings();
-            }
-        });
+        // Edit controls - removed edit button, users go to settings instead
         btnCancel.setOnClickListener(v -> {
             setEditing(false);
             loadProfile();
@@ -148,27 +127,11 @@ public class ProfileActivity extends AppCompatActivity {
         editContact.setEnabled(false);
         editContact.setInputType(InputType.TYPE_NULL);
 
-        // Disable privacy switches - handled in settings
-        if (isOwnProfile) {
-            switchDisplayName.setEnabled(false);
-            switchActualName.setEnabled(false);
-            switchProfilePic.setEnabled(false);
-            switchCoverPhoto.setEnabled(false);
-            switchCategories.setEnabled(false);
-            switchBio.setEnabled(false);
-            switchContact.setEnabled(false);
-            switchStats.setEnabled(false);
-            switchPrivateMessages.setEnabled(false);
-            switchFriendRequests.setEnabled(false);
-            switchChatInvites.setEnabled(false);
-        }
-
         // Show/hide edit/save/cancel buttons
         if (isOwnProfile) {
-            // For own profile, hide edit functionality and show settings button instead
+            // For own profile, hide edit functionality since edit button is removed
             btnSave.setVisibility(View.GONE);
             btnCancel.setVisibility(View.GONE);
-            btnEdit.setVisibility(View.GONE);
             // Settings button visibility is handled in fillViews method
         }
 
@@ -229,12 +192,10 @@ public class ProfileActivity extends AppCompatActivity {
         
         // Show/hide buttons based on whose profile we're viewing
         if (isOwnProfile) {
-            // Viewing own profile - show edit button, hide add friend button
-            btnEdit.setVisibility(View.VISIBLE);
+            // Viewing own profile - hide add friend button
             btnAddFriend.setVisibility(View.GONE);
         } else {
-            // Viewing someone else's profile - hide edit button, show add friend button
-            btnEdit.setVisibility(View.GONE);
+            // Viewing someone else's profile - show add friend button
             btnAddFriend.setVisibility(View.VISIBLE);
             
             // Check if they're already friends and update button text accordingly
@@ -359,21 +320,6 @@ public class ProfileActivity extends AppCompatActivity {
             memberSinceText.setText("Member since: Hidden");
             numPostsText.setText("Posts: Hidden");
         }
-
-        // Privacy settings - only show for own profile
-        if (isOwnProfile) {
-            switchDisplayName.setChecked(priv.showDisplayName);
-            switchActualName.setChecked(priv.showActualName);
-            switchProfilePic.setChecked(priv.showProfilePicture);
-            switchCoverPhoto.setChecked(priv.showCoverPhoto);
-            switchCategories.setChecked(priv.showSupportCategories);
-            switchBio.setChecked(priv.showBio);
-            switchContact.setChecked(priv.showContact);
-            switchStats.setChecked(priv.showStats);
-            switchPrivateMessages.setChecked(priv.allowPrivateMessages);
-            switchFriendRequests.setChecked(priv.allowFriendRequests);
-            switchChatInvites.setChecked(priv.allowChatInvites);
-        }
     }
 
     private void saveProfile() {
@@ -395,19 +341,11 @@ public class ProfileActivity extends AppCompatActivity {
         }
         p.supportCategories = selectedCats;
 
-        PrivacySettings priv = new PrivacySettings();
-        priv.showDisplayName = switchDisplayName.isChecked();
-        priv.showActualName = switchActualName.isChecked();
-        priv.showProfilePicture = switchProfilePic.isChecked();
-        priv.showCoverPhoto = switchCoverPhoto.isChecked();
-        priv.showSupportCategories = switchCategories.isChecked();
-        priv.showBio = switchBio.isChecked();
-        priv.showContact = switchContact.isChecked();
-        priv.showStats = switchStats.isChecked();
-        priv.allowPrivateMessages = switchPrivateMessages.isChecked();
-        priv.allowFriendRequests = switchFriendRequests.isChecked();
-        priv.allowChatInvites = switchChatInvites.isChecked();
-        p.privacy = priv;
+        // Privacy settings are now handled in SettingsActivity
+        // Keep existing privacy settings if they exist
+        if (userProfile != null && userProfile.privacy != null) {
+            p.privacy = userProfile.privacy;
+        }
 
         // Upload profile photo first
         if (profilePicUri != null) {

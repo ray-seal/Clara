@@ -3,10 +3,14 @@ package com.rayseal.supportapp;
 import android.content.Context;
 import android.widget.Toast;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.firestore.FirebaseFirestore;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 
@@ -295,6 +299,69 @@ public class ModerationUtils {
                 listener.onBlockCheck(false);
             });
     }
+
+    /**
+     * Get the current user's name
+     */
+    public static void getCurrentUserName(OnUserNameListener listener) {
+        String currentUserId = FirebaseAuth.getInstance().getCurrentUser() != null ? 
+            FirebaseAuth.getInstance().getCurrentUser().getUid() : null;
+        
+        if (currentUserId == null) {
+            listener.onUserName("Anonymous");
+            return;
+        }
+        
+        FirebaseFirestore.getInstance()
+            .collection("profiles")
+            .document(currentUserId)
+            .get()
+            .addOnSuccessListener(doc -> {
+                if (doc.exists()) {
+                    Profile profile = doc.toObject(Profile.class);
+                    String userName = (profile != null && profile.displayName != null && !profile.displayName.isEmpty()) 
+                        ? profile.displayName : "Anonymous";
+                    listener.onUserName(userName);
+                } else {
+                    listener.onUserName("Anonymous");
+                }
+            })
+            .addOnFailureListener(e -> {
+                android.util.Log.e(TAG, "Error getting user name", e);
+                listener.onUserName("Anonymous");
+            });
+    }
+
+    /**
+     * Send notification to Admin chat room
+     */
+    public static void sendNotificationToAdminChat(String content) {
+        String currentUserId = FirebaseAuth.getInstance().getCurrentUser() != null ? 
+            FirebaseAuth.getInstance().getCurrentUser().getUid() : "system";
+        
+        DatabaseReference adminChatRef = FirebaseDatabase.getInstance()
+            .getReference("chatRooms/Admin/messages");
+        
+        // Create the message
+        Map<String, Object> messageData = new HashMap<>();
+        messageData.put("senderId", currentUserId);
+        messageData.put("senderName", "System");
+        messageData.put("content", content);
+        messageData.put("timestamp", System.currentTimeMillis());
+        messageData.put("roomId", "Admin");
+        
+        // Push to Firebase
+        DatabaseReference newMessageRef = adminChatRef.push();
+        messageData.put("messageId", newMessageRef.getKey());
+        
+        newMessageRef.setValue(messageData)
+            .addOnSuccessListener(aVoid -> {
+                android.util.Log.d(TAG, "Admin chat notification sent successfully");
+            })
+            .addOnFailureListener(e -> {
+                android.util.Log.e(TAG, "Failed to send admin chat notification", e);
+            });
+    }
     
     // Callback interfaces
     public interface OnAdminCheckListener {
@@ -307,6 +374,10 @@ public class ModerationUtils {
     
     public interface OnBlockCheckListener {
         void onBlockCheck(boolean isBlocked);
+    }
+
+    public interface OnUserNameListener {
+        void onUserName(String userName);
     }
     
     // Content analysis result class

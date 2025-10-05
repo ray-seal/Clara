@@ -1,11 +1,16 @@
 package com.rayseal.supportapp;
 
+import android.app.AlertDialog;
+import android.content.Context;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
+import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -19,9 +24,13 @@ import java.util.Locale;
 public class ChatMessageAdapter extends RecyclerView.Adapter<ChatMessageAdapter.MessageViewHolder> {
     private List<ChatMessage> messages = new ArrayList<>();
     private String currentUserId;
+    private String roomId;
+    private Context context;
 
-    public ChatMessageAdapter(String currentUserId) {
+    public ChatMessageAdapter(String currentUserId, String roomId, Context context) {
         this.currentUserId = currentUserId;
+        this.roomId = roomId;
+        this.context = context;
     }
 
     @NonNull
@@ -36,6 +45,7 @@ public class ChatMessageAdapter extends RecyclerView.Adapter<ChatMessageAdapter.
     public void onBindViewHolder(@NonNull MessageViewHolder holder, int position) {
         ChatMessage message = messages.get(position);
         holder.bind(message, currentUserId);
+        setupDeleteButton(holder, message, position);
     }
 
     @Override
@@ -53,10 +63,71 @@ public class ChatMessageAdapter extends RecyclerView.Adapter<ChatMessageAdapter.
         notifyItemInserted(messages.size() - 1);
     }
 
+    private void setupDeleteButton(MessageViewHolder holder, ChatMessage message, int position) {
+        // Check if user can delete this message (owner or admin)
+        ModerationUtils.checkAdminStatus(isAdmin -> {
+            boolean canDelete = message.senderId.equals(currentUserId) || isAdmin;
+            
+            if (canDelete) {
+                holder.deleteButton.setVisibility(View.VISIBLE);
+                holder.deleteButton.setOnClickListener(v -> showDeleteConfirmation(message, position));
+            } else {
+                holder.deleteButton.setVisibility(View.GONE);
+            }
+        });
+    }
+
+    private void showDeleteConfirmation(ChatMessage message, int position) {
+        new AlertDialog.Builder(context)
+                .setTitle("Delete Message")
+                .setMessage("Are you sure you want to delete this message?")
+                .setPositiveButton("Delete", (dialog, which) -> deleteMessage(message, position))
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
+    private void deleteMessage(ChatMessage message, int position) {
+        DatabaseReference messageRef = FirebaseDatabase.getInstance()
+                .getReference("chatRooms")
+                .child(roomId)
+                .child("messages")
+                .child(message.messageId);
+
+        messageRef.removeValue()
+                .addOnSuccessListener(aVoid -> {
+                    // Remove from local list
+                    messages.remove(position);
+                    notifyItemRemoved(position);
+                    
+                    // Send deletion notification to Admin chat
+                    sendDeletionNotificationToAdminChat(message);
+                    
+                    Toast.makeText(context, "Message deleted", Toast.LENGTH_SHORT).show();
+                })
+                .addOnFailureListener(e -> {
+                    Toast.makeText(context, "Failed to delete message: " + e.getMessage(), 
+                            Toast.LENGTH_SHORT).show();
+                });
+    }
+
+    private void sendDeletionNotificationToAdminChat(ChatMessage message) {
+        // Get the current user's name for the notification
+        ModerationUtils.getCurrentUserName(userName -> {
+            String notificationContent = "🗑️ Message deleted by " + userName + "\n" +
+                    "Original sender: " + message.senderName + "\n" +
+                    "Content: " + message.content + "\n" +
+                    "Time: " + new SimpleDateFormat("MMM dd, yyyy 'at' h:mm a", Locale.getDefault())
+                            .format(new Date(message.timestamp));
+            
+            ModerationUtils.sendNotificationToAdminChat(notificationContent);
+        });
+    }
+
     static class MessageViewHolder extends RecyclerView.ViewHolder {
         TextView senderNameText;
         TextView messageContentText;
         TextView timestampText;
+        TextView deleteButton;
         View messageContainer;
 
         MessageViewHolder(View itemView) {
@@ -64,6 +135,7 @@ public class ChatMessageAdapter extends RecyclerView.Adapter<ChatMessageAdapter.
             senderNameText = itemView.findViewById(R.id.senderNameText);
             messageContentText = itemView.findViewById(R.id.messageContentText);
             timestampText = itemView.findViewById(R.id.timestampText);
+            deleteButton = itemView.findViewById(R.id.deleteButton);
             messageContainer = itemView.findViewById(R.id.messageContainer);
         }
 

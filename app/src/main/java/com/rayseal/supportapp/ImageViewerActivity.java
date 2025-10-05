@@ -14,8 +14,27 @@ public class ImageViewerActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        Log.d(TAG, "ImageViewerActivity onCreate started");
         
         try {
+            // Check if intent and extras are valid
+            if (getIntent() == null) {
+                Log.e(TAG, "Intent is null!");
+                Toast.makeText(this, "Error: No intent provided", Toast.LENGTH_SHORT).show();
+                finish();
+                return;
+            }
+            
+            String imageUrl = getIntent().getStringExtra("imageUrl");
+            Log.d(TAG, "Image URL received: " + imageUrl);
+            
+            if (imageUrl == null || imageUrl.isEmpty()) {
+                Log.e(TAG, "Image URL is null or empty");
+                Toast.makeText(this, "No image URL provided", Toast.LENGTH_SHORT).show();
+                finish();
+                return;
+            }
+            
             setContentView(R.layout.activity_image_viewer);
             Log.d(TAG, "Layout set successfully");
 
@@ -36,27 +55,39 @@ public class ImageViewerActivity extends AppCompatActivity {
                 return;
             }
 
-            String imageUrl = getIntent().getStringExtra("imageUrl");
-            Log.d(TAG, "Image URL: " + imageUrl);
+            Log.d(TAG, "Views found successfully, loading image: " + imageUrl);
             
-            if (imageUrl != null && !imageUrl.isEmpty()) {
-                try {
-                    Glide.with(this)
-                            .load(imageUrl)
-                            .diskCacheStrategy(DiskCacheStrategy.ALL)
-                            .placeholder(android.R.drawable.ic_menu_gallery)
-                            .error(android.R.drawable.ic_delete)
-                            .into(enlargedImageView);
-                    Log.d(TAG, "Glide load initiated");
-                } catch (Exception e) {
-                    Log.e(TAG, "Error loading image with Glide", e);
-                    Toast.makeText(this, "Error loading image", Toast.LENGTH_SHORT).show();
-                    finish();
-                    return;
-                }
-            } else {
-                Log.e(TAG, "Image URL is null or empty");
-                Toast.makeText(this, "No image URL provided", Toast.LENGTH_SHORT).show();
+            Log.d(TAG, "Views found successfully, loading image: " + imageUrl);
+            
+            try {
+                Glide.with(this)
+                        .load(imageUrl)
+                        .diskCacheStrategy(DiskCacheStrategy.ALL)
+                        .placeholder(android.R.drawable.ic_menu_gallery)
+                        .error(android.R.drawable.ic_delete)
+                        .listener(new com.bumptech.glide.request.RequestListener<android.graphics.drawable.Drawable>() {
+                            @Override
+                            public boolean onLoadFailed(com.bumptech.glide.load.engine.GlideException e, Object model, 
+                                    com.bumptech.glide.request.target.Target<android.graphics.drawable.Drawable> target, 
+                                    boolean isFirstResource) {
+                                Log.e(TAG, "Glide failed to load image: " + imageUrl, e);
+                                runOnUiThread(() -> Toast.makeText(ImageViewerActivity.this, "Failed to load image", Toast.LENGTH_SHORT).show());
+                                return false;
+                            }
+
+                            @Override
+                            public boolean onResourceReady(android.graphics.drawable.Drawable resource, Object model, 
+                                    com.bumptech.glide.request.target.Target<android.graphics.drawable.Drawable> target, 
+                                    com.bumptech.glide.load.DataSource dataSource, boolean isFirstResource) {
+                                Log.d(TAG, "Glide successfully loaded image");
+                                return false;
+                            }
+                        })
+                        .into(enlargedImageView);
+                Log.d(TAG, "Glide load initiated");
+            } catch (Exception e) {
+                Log.e(TAG, "Error loading image with Glide", e);
+                Toast.makeText(this, "Error loading image", Toast.LENGTH_SHORT).show();
                 finish();
                 return;
             }

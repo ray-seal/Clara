@@ -163,7 +163,7 @@ public class ChatRoomActivity extends AppCompatActivity {
     }
 
     private void setupRecyclerView() {
-        adapter = new ChatMessageAdapter(currentUserId);
+        adapter = new ChatMessageAdapter(currentUserId, roomId, this);
         LinearLayoutManager layoutManager = new LinearLayoutManager(this);
         layoutManager.setStackFromEnd(true);
         messagesRecyclerView.setLayoutManager(layoutManager);

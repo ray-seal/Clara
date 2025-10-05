@@ -44,12 +44,25 @@ public class FriendAdapter extends RecyclerView.Adapter<FriendAdapter.FriendView
 
     @Override
     public void onBindViewHolder(@NonNull FriendViewHolder holder, int position) {
-        Object item = items.get(position);
+        try {
+            if (position < 0 || position >= items.size()) {
+                android.util.Log.w("FriendAdapter", "Invalid position: " + position);
+                return;
+            }
+            
+            Object item = items.get(position);
+            if (item == null) {
+                android.util.Log.w("FriendAdapter", "Null item at position: " + position);
+                return;
+            }
 
-        if (item instanceof Friend) {
-            bindFriend(holder, (Friend) item);
-        } else if (item instanceof Profile) {
-            bindProfile(holder, (Profile) item);
+            if (item instanceof Friend) {
+                bindFriend(holder, (Friend) item);
+            } else if (item instanceof Profile) {
+                bindProfile(holder, (Profile) item);
+            }
+        } catch (Exception e) {
+            android.util.Log.e("FriendAdapter", "Error binding view holder at position " + position, e);
         }
     }
 
@@ -63,7 +76,8 @@ public class FriendAdapter extends RecyclerView.Adapter<FriendAdapter.FriendView
                     if (doc.exists()) {
                         Profile profile = doc.toObject(Profile.class);
                         if (profile != null) {
-                            holder.nameText.setText(profile.displayName.isEmpty() ? "Anonymous" : profile.displayName);
+                            String displayName = profile.displayName;
+                            holder.nameText.setText((displayName == null || displayName.isEmpty()) ? "Anonymous" : displayName);
                             
                             if (profile.profilePictureUrl != null && !profile.profilePictureUrl.isEmpty()) {
                                 Glide.with(holder.itemView.getContext())
@@ -75,6 +89,11 @@ public class FriendAdapter extends RecyclerView.Adapter<FriendAdapter.FriendView
                             }
                         }
                     }
+                })
+                .addOnFailureListener(e -> {
+                    android.util.Log.e("FriendAdapter", "Failed to load profile for friend", e);
+                    holder.nameText.setText("Anonymous");
+                    holder.profileImage.setImageResource(R.drawable.ic_person);
                 });
 
         if (friend.status.equals("pending") && !friend.requesterId.equals(currentUserId)) {
@@ -106,7 +125,8 @@ public class FriendAdapter extends RecyclerView.Adapter<FriendAdapter.FriendView
     }
 
     private void bindProfile(FriendViewHolder holder, Profile profile) {
-        holder.nameText.setText(profile.displayName.isEmpty() ? "Anonymous" : profile.displayName);
+        String displayName = profile.displayName;
+        holder.nameText.setText((displayName == null || displayName.isEmpty()) ? "Anonymous" : displayName);
         holder.statusText.setText(""); // Clear status for search results
 
         if (profile.profilePictureUrl != null && !profile.profilePictureUrl.isEmpty()) {
@@ -144,9 +164,15 @@ public class FriendAdapter extends RecyclerView.Adapter<FriendAdapter.FriendView
     }
 
     public void setSearchResults(List<Profile> profiles) {
-        this.items.clear();
-        this.items.addAll(profiles);
-        notifyDataSetChanged();
+        try {
+            this.items.clear();
+            if (profiles != null) {
+                this.items.addAll(profiles);
+            }
+            notifyDataSetChanged();
+        } catch (Exception e) {
+            android.util.Log.e("FriendAdapter", "Error setting search results", e);
+        }
     }
 
     public void clearItems() {

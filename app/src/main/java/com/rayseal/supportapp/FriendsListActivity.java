@@ -219,52 +219,85 @@ public class FriendsListActivity extends AppCompatActivity {
                 .get()
                 .addOnSuccessListener(querySnapshot -> {
                     List<Profile> profiles = new ArrayList<>();
-                    for (DocumentSnapshot doc : querySnapshot.getDocuments()) {
-                        Profile profile = doc.toObject(Profile.class);
-                        if (profile != null && !profile.uid.equals(currentUserId)) {
-                            // Also check if the lowercase displayName contains the lowercase query
-                            String profileName = profile.displayName != null ? profile.displayName.toLowerCase() : "";
-                            if (profileName.contains(lowercaseQuery) || 
-                                (profile.actualName != null && profile.actualName.toLowerCase().contains(lowercaseQuery))) {
-                                profiles.add(profile);
+                    try {
+                        for (DocumentSnapshot doc : querySnapshot.getDocuments()) {
+                            try {
+                                Profile profile = doc.toObject(Profile.class);
+                                if (profile != null && profile.uid != null && !profile.uid.equals(currentUserId)) {
+                                    // Also check if the lowercase displayName contains the lowercase query
+                                    String profileName = profile.displayName != null ? profile.displayName.toLowerCase() : "";
+                                    String actualName = profile.actualName != null ? profile.actualName.toLowerCase() : "";
+                                    if (profileName.contains(lowercaseQuery) || actualName.contains(lowercaseQuery)) {
+                                        profiles.add(profile);
+                                    }
+                                }
+                            } catch (Exception e) {
+                                // Skip individual profile that fails to parse
+                                android.util.Log.w("FriendsListActivity", "Failed to parse profile: " + e.getMessage());
                             }
                         }
-                    }
-                    
-                    // If no results from the ordered search, try a broader search
-                    if (profiles.isEmpty()) {
-                        firestore.collection("profiles")
-                                .limit(100)
-                                .get()
-                                .addOnSuccessListener(allQuerySnapshot -> {
-                                    for (DocumentSnapshot doc : allQuerySnapshot.getDocuments()) {
-                                        Profile profile = doc.toObject(Profile.class);
-                                        if (profile != null && !profile.uid.equals(currentUserId)) {
-                                            String profileName = profile.displayName != null ? profile.displayName.toLowerCase() : "";
-                                            String actualName = profile.actualName != null ? profile.actualName.toLowerCase() : "";
-                                            if (profileName.contains(lowercaseQuery) || actualName.contains(lowercaseQuery)) {
-                                                profiles.add(profile);
-                                            }
-                                        }
-                                    }
-                                    
-                                    if (profiles.isEmpty()) {
-                                        Toast.makeText(this, "No users found matching '" + query + "'", Toast.LENGTH_SHORT).show();
-                                    }
-                                    
-                                    friendAdapter.setSearchResults(profiles);
-                                    progressBar.setVisibility(View.GONE);
-                                })
-                                .addOnFailureListener(e -> {
-                                    Toast.makeText(this, "Search failed: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-                                    progressBar.setVisibility(View.GONE);
-                                });
-                    } else {
-                        friendAdapter.setSearchResults(profiles);
+                        
+                        // If no results from the ordered search, try a broader search
+                        if (profiles.isEmpty()) {
+                            performBroaderSearch(lowercaseQuery, query);
+                        } else {
+                            if (friendAdapter != null) {
+                                friendAdapter.setSearchResults(profiles);
+                            }
+                            progressBar.setVisibility(View.GONE);
+                        }
+                    } catch (Exception e) {
+                        android.util.Log.e("FriendsListActivity", "Error processing search results", e);
+                        Toast.makeText(this, "Search error: " + e.getMessage(), Toast.LENGTH_SHORT).show();
                         progressBar.setVisibility(View.GONE);
                     }
                 })
                 .addOnFailureListener(e -> {
+                    android.util.Log.e("FriendsListActivity", "Search failed", e);
+                    Toast.makeText(this, "Search failed: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                    progressBar.setVisibility(View.GONE);
+                });
+    }
+    
+    private void performBroaderSearch(String lowercaseQuery, String originalQuery) {
+        firestore.collection("profiles")
+                .limit(100)
+                .get()
+                .addOnSuccessListener(allQuerySnapshot -> {
+                    List<Profile> profiles = new ArrayList<>();
+                    try {
+                        for (DocumentSnapshot doc : allQuerySnapshot.getDocuments()) {
+                            try {
+                                Profile profile = doc.toObject(Profile.class);
+                                if (profile != null && profile.uid != null && !profile.uid.equals(currentUserId)) {
+                                    String profileName = profile.displayName != null ? profile.displayName.toLowerCase() : "";
+                                    String actualName = profile.actualName != null ? profile.actualName.toLowerCase() : "";
+                                    if (profileName.contains(lowercaseQuery) || actualName.contains(lowercaseQuery)) {
+                                        profiles.add(profile);
+                                    }
+                                }
+                            } catch (Exception e) {
+                                // Skip individual profile that fails to parse
+                                android.util.Log.w("FriendsListActivity", "Failed to parse profile in broader search: " + e.getMessage());
+                            }
+                        }
+                        
+                        if (profiles.isEmpty()) {
+                            Toast.makeText(this, "No users found matching '" + originalQuery + "'", Toast.LENGTH_SHORT).show();
+                        }
+                        
+                        if (friendAdapter != null) {
+                            friendAdapter.setSearchResults(profiles);
+                        }
+                        progressBar.setVisibility(View.GONE);
+                    } catch (Exception e) {
+                        android.util.Log.e("FriendsListActivity", "Error processing broader search results", e);
+                        Toast.makeText(this, "Search error: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                        progressBar.setVisibility(View.GONE);
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    android.util.Log.e("FriendsListActivity", "Broader search failed", e);
                     Toast.makeText(this, "Search failed: " + e.getMessage(), Toast.LENGTH_SHORT).show();
                     progressBar.setVisibility(View.GONE);
                 });

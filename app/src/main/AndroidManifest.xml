@@ -35,7 +35,7 @@ android:theme="@style/Theme.SupportApp">
 <activity android:name=".NotificationsActivity" />
 <activity android:name=".SettingsActivity" />
 <activity android:name=".ImageViewerActivity" 
-          android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen" />
+          android:theme="@style/Theme.AppCompat.Light.NoActionBar" />
 
 <!-- Firebase Messaging Service -->
 <service
