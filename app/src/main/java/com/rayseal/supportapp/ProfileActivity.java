@@ -207,18 +207,38 @@ public class ProfileActivity extends AppCompatActivity {
                 userProfile = doc.toObject(Profile.class);
                 
                 // Migration: Handle old profiles with memberSince as long
-                if (userProfile != null && userProfile.memberSince == null) {
-                    // Check if there's a memberSince field stored as long
-                    Object memberSinceObj = doc.get("memberSince");
-                    if (memberSinceObj instanceof Long) {
-                        long memberSinceMillis = (Long) memberSinceObj;
-                        if (memberSinceMillis > 0) {
-                            userProfile.setMemberSinceFromMillis(memberSinceMillis);
-                            // Update the profile to save the new Timestamp format
+                try {
+                    if (userProfile != null && userProfile.memberSince == null) {
+                        // Check if there's a memberSince field stored as long
+                        Object memberSinceObj = doc.get("memberSince");
+                        if (memberSinceObj instanceof Long) {
+                            long memberSinceMillis = (Long) memberSinceObj;
+                            if (memberSinceMillis > 0) {
+                                userProfile.setMemberSinceFromMillis(memberSinceMillis);
+                                // Update the profile to save the new Timestamp format
+                                if (isOwnProfile) {
+                                    db.collection("profiles").document(profileUserId).set(userProfile)
+                                        .addOnFailureListener(e -> {
+                                            android.util.Log.e("ProfileActivity", "Failed to update profile during migration", e);
+                                        });
+                                }
+                            }
+                        } else if (userProfile.memberSince == null) {
+                            // If no memberSince exists at all, set it to now
+                            userProfile.memberSince = com.google.firebase.Timestamp.now();
                             if (isOwnProfile) {
-                                db.collection("profiles").document(profileUserId).set(userProfile);
+                                db.collection("profiles").document(profileUserId).set(userProfile)
+                                    .addOnFailureListener(e -> {
+                                        android.util.Log.e("ProfileActivity", "Failed to set memberSince", e);
+                                    });
                             }
                         }
+                    }
+                } catch (Exception e) {
+                    android.util.Log.e("ProfileActivity", "Error during profile migration", e);
+                    // Continue with profile loading even if migration fails
+                    if (userProfile != null && userProfile.memberSince == null) {
+                        userProfile.memberSince = com.google.firebase.Timestamp.now();
                     }
                 }
             } else {
@@ -233,6 +253,7 @@ public class ProfileActivity extends AppCompatActivity {
                     userProfile.coverPhotoUrl = "";
                     userProfile.supportCategories = new ArrayList<>();
                     userProfile.privacy = new PrivacySettings();
+                    userProfile.memberSince = com.google.firebase.Timestamp.now(); // Set creation timestamp
                     // memberSince is automatically set to current timestamp in constructor
                     userProfile.numPosts = 0;
                 } else {

@@ -112,17 +112,17 @@ public class MainActivity extends AppCompatActivity {
                             @Override
                             public void onComplete(@NonNull Task<AuthResult> task) {
                                 if (task.isSuccessful()) {
-                                    // Create user profile immediately after successful signup
-                                    FirebaseUser user = task.getResult().getUser();
-                                    if (user != null) {
-                                        createUserProfile(user.getUid(), emailText);
-                                    }
-                                    
                                     welcomeText.setText("Sign up successful! Welcome, " + emailText);
                                     Bundle signUpBundle = new Bundle();
                                     signUpBundle.putString(FirebaseAnalytics.Param.METHOD, "email_signup");
                                     mFirebaseAnalytics.logEvent("sign_up", signUpBundle);
                                     updateButtonsAfterAuth();
+                                    
+                                    // Create user profile after UI updates
+                                    FirebaseUser user = task.getResult().getUser();
+                                    if (user != null) {
+                                        createUserProfile(user.getUid(), emailText);
+                                    }
                                 } else {
                                     welcomeText.setText("Sign up failed: " + task.getException().getMessage());
                                 }
@@ -162,19 +162,24 @@ private void updateButtonsAfterAuth() {
  * Create a new user profile in Firestore when user signs up
  */
 private void createUserProfile(String userId, String email) {
-    Profile newProfile = new Profile();
-    newProfile.uid = userId;
-    newProfile.displayName = email.split("@")[0]; // Use email prefix as default display name
-    
-    FirebaseFirestore.getInstance()
-        .collection("profiles")
-        .document(userId)
-        .set(newProfile)
-        .addOnSuccessListener(aVoid -> {
-            android.util.Log.d("MainActivity", "User profile created successfully");
-        })
-        .addOnFailureListener(e -> {
-            android.util.Log.e("MainActivity", "Error creating user profile", e);
-        });
+    try {
+        Profile newProfile = new Profile();
+        newProfile.uid = userId;
+        newProfile.displayName = email.split("@")[0]; // Use email prefix as default display name
+        newProfile.memberSince = com.google.firebase.Timestamp.now(); // Set creation timestamp
+        
+        FirebaseFirestore.getInstance()
+            .collection("profiles")
+            .document(userId)
+            .set(newProfile)
+            .addOnSuccessListener(aVoid -> {
+                android.util.Log.d("MainActivity", "User profile created successfully");
+            })
+            .addOnFailureListener(e -> {
+                android.util.Log.e("MainActivity", "Error creating user profile", e);
+            });
+    } catch (Exception e) {
+        android.util.Log.e("MainActivity", "Exception in createUserProfile", e);
+    }
 }
 }

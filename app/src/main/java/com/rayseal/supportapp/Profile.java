@@ -14,7 +14,7 @@ public class Profile {
     public String coverPhotoUrl = "";
     public List<String> supportCategories = new ArrayList<>();
     public PrivacySettings privacy = new PrivacySettings();
-    public Timestamp memberSince = Timestamp.now();
+    public Timestamp memberSince = null; // Will be set properly when profile is created
     public int numPosts = 0;
     
     // Privacy settings for new features
