@@ -24,6 +24,8 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.WriteBatch;
+import com.google.firebase.firestore.DocumentReference;
 
 public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder> {
   private List<Post> posts;
@@ -222,18 +224,29 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
   private void toggleReaction(Post post, String reactionType, String message, int position) {
     if (post.postId == null || currentUserId.isEmpty()) return;
     
-    // Check current reaction status
+    // Check current reaction status for this specific reaction type
     boolean hasReacted = false;
     if (post.userReactions != null && post.userReactions.containsKey(reactionType) && 
         post.userReactions.get(reactionType) != null) {
         hasReacted = post.userReactions.get(reactionType).contains(currentUserId);
     }
     
-    String reactionPath = "userReactions." + reactionType;
-    String countPath = "reactions." + reactionType;
+    // Check if user has any existing reactions (for single reaction limit)
+    String existingReactionType = null;
+    if (post.userReactions != null) {
+        for (Map.Entry<String, List<String>> entry : post.userReactions.entrySet()) {
+            if (entry.getValue() != null && entry.getValue().contains(currentUserId)) {
+                existingReactionType = entry.getKey();
+                break;
+            }
+        }
+    }
     
     if (hasReacted) {
-        // Remove reaction
+        // Remove current reaction
+        String reactionPath = "userReactions." + reactionType;
+        String countPath = "reactions." + reactionType;
+        
         firestore.collection("posts").document(post.postId)
             .update(reactionPath, FieldValue.arrayRemove(currentUserId),
                    countPath, FieldValue.increment(-1))
@@ -247,12 +260,37 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
                 notifyItemChanged(position);
             });
     } else {
-        // Add reaction
-        firestore.collection("posts").document(post.postId)
-            .update(reactionPath, FieldValue.arrayUnion(currentUserId),
-                   countPath, FieldValue.increment(1))
-            .addOnSuccessListener(aVoid -> {
+        // Add new reaction (remove existing one first if it exists)
+        if (existingReactionType != null && !existingReactionType.equals(reactionType)) {
+            // Remove existing reaction first
+            final String finalExistingReactionType = existingReactionType;
+            String oldReactionPath = "userReactions." + finalExistingReactionType;
+            String oldCountPath = "reactions." + finalExistingReactionType;
+            String newReactionPath = "userReactions." + reactionType;
+            String newCountPath = "reactions." + reactionType;
+            
+            // Use batch write to ensure atomicity
+            WriteBatch batch = firestore.batch();
+            DocumentReference postRef = firestore.collection("posts").document(post.postId);
+            
+            // Remove old reaction
+            batch.update(postRef, oldReactionPath, FieldValue.arrayRemove(currentUserId));
+            batch.update(postRef, oldCountPath, FieldValue.increment(-1));
+            
+            // Add new reaction
+            batch.update(postRef, newReactionPath, FieldValue.arrayUnion(currentUserId));
+            batch.update(postRef, newCountPath, FieldValue.increment(1));
+            
+            batch.commit().addOnSuccessListener(aVoid -> {
                 // Update local data
+                // Remove from old reaction
+                if (post.userReactions.get(finalExistingReactionType) != null) {
+                    post.userReactions.get(finalExistingReactionType).remove(currentUserId);
+                }
+                int oldCount = post.reactions.containsKey(finalExistingReactionType) ? post.reactions.get(finalExistingReactionType) : 0;
+                post.reactions.put(finalExistingReactionType, Math.max(0, oldCount - 1));
+                
+                // Add to new reaction
                 if (post.userReactions == null) post.userReactions = new HashMap<>();
                 if (post.userReactions.get(reactionType) == null) {
                     post.userReactions.put(reactionType, new ArrayList<>());
@@ -263,7 +301,39 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
                 int currentCount = post.reactions.containsKey(reactionType) ? post.reactions.get(reactionType) : 0;
                 post.reactions.put(reactionType, currentCount + 1);
                 notifyItemChanged(position);
+                
+                // Create notification for reaction (only if not reacting to own post)
+                if (!post.userId.equals(currentUserId)) {
+                    createReactionNotification(post, reactionType);
+                }
             });
+        } else {
+            // No existing reaction, just add new one
+            String reactionPath = "userReactions." + reactionType;
+            String countPath = "reactions." + reactionType;
+            
+            firestore.collection("posts").document(post.postId)
+                .update(reactionPath, FieldValue.arrayUnion(currentUserId),
+                       countPath, FieldValue.increment(1))
+                .addOnSuccessListener(aVoid -> {
+                    // Update local data
+                    if (post.userReactions == null) post.userReactions = new HashMap<>();
+                    if (post.userReactions.get(reactionType) == null) {
+                        post.userReactions.put(reactionType, new ArrayList<>());
+                    }
+                    post.userReactions.get(reactionType).add(currentUserId);
+                    
+                    if (post.reactions == null) post.reactions = new HashMap<>();
+                    int currentCount = post.reactions.containsKey(reactionType) ? post.reactions.get(reactionType) : 0;
+                    post.reactions.put(reactionType, currentCount + 1);
+                    notifyItemChanged(position);
+                    
+                    // Create notification for reaction (only if not reacting to own post)
+                    if (!post.userId.equals(currentUserId)) {
+                        createReactionNotification(post, reactionType);
+                    }
+                });
+        }
     }
   }
   
@@ -348,6 +418,102 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
     });
     
     dialog.show();
+  }
+
+  private void createReactionNotification(Post post, String reactionType) {
+    // Get current user's profile information
+    firestore.collection("profiles").document(currentUserId).get()
+        .addOnSuccessListener(doc -> {
+            String fromUserName = "Someone";
+            String fromUserProfilePicture = "";
+            
+            if (doc.exists()) {
+                Profile profile = doc.toObject(Profile.class);
+                if (profile != null) {
+                    fromUserName = profile.displayName != null && !profile.displayName.isEmpty() ? 
+                        profile.displayName : "Someone";
+                    fromUserProfilePicture = profile.profilePictureUrl != null ? profile.profilePictureUrl : "";
+                }
+            }
+            
+            // Create notification
+            Notification notification = Notification.createReactionNotification(
+                post.userId, 
+                currentUserId, 
+                fromUserName, 
+                fromUserProfilePicture, 
+                post.postId, 
+                reactionType
+            );
+            
+            // Save notification to Firestore
+            firestore.collection("notifications")
+                .add(notification)
+                .addOnSuccessListener(documentReference -> {
+                    android.util.Log.d("PostAdapter", "Notification created successfully");
+                    // Send push notification
+                    sendPushNotification(post.userId, notification);
+                })
+                .addOnFailureListener(e -> {
+                    android.util.Log.e("PostAdapter", "Error creating notification", e);
+                });
+        });
+  }
+
+  private void sendPushNotification(String recipientUserId, Notification notification) {
+    // Get the recipient's FCM token
+    firestore.collection("fcm_tokens").document(recipientUserId).get()
+        .addOnSuccessListener(doc -> {
+            if (doc.exists()) {
+                String fcmToken = doc.getString("token");
+                if (fcmToken != null) {
+                    // Create a push notification document that can be processed by a cloud function
+                    PushNotificationRequest pushRequest = new PushNotificationRequest(
+                        fcmToken,
+                        notification.title,
+                        notification.message,
+                        notification.type,
+                        notification.relatedPostId,
+                        notification.fromUserId
+                    );
+                    
+                    // Store in a collection that triggers cloud function
+                    firestore.collection("push_notifications")
+                        .add(pushRequest)
+                        .addOnSuccessListener(pushDoc -> {
+                            android.util.Log.d("PostAdapter", "Push notification queued");
+                        })
+                        .addOnFailureListener(e -> {
+                            android.util.Log.e("PostAdapter", "Error queuing push notification", e);
+                        });
+                }
+            }
+        });
+  }
+
+  // Push notification request model
+  public static class PushNotificationRequest {
+    public String token;
+    public String title;
+    public String body;
+    public String type;
+    public String postId;
+    public String userId;
+    public long timestamp;
+    
+    public PushNotificationRequest() {
+        // Required for Firestore
+    }
+    
+    public PushNotificationRequest(String token, String title, String body, String type, String postId, String userId) {
+        this.token = token;
+        this.title = title;
+        this.body = body;
+        this.type = type;
+        this.postId = postId;
+        this.userId = userId;
+        this.timestamp = System.currentTimeMillis();
+    }
   }
 
   @Override

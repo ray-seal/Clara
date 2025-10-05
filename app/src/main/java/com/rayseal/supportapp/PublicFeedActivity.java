@@ -24,6 +24,7 @@ import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 import com.google.firebase.Timestamp;
+import com.google.firebase.messaging.FirebaseMessaging;
 import java.util.*;
 import android.widget.GridLayout;
 
@@ -55,6 +56,9 @@ public class PublicFeedActivity extends AppCompatActivity {
 
         FirebaseApp.initializeApp(this);
         db = FirebaseFirestore.getInstance();
+
+        // Initialize FCM token
+        initializeFCMToken();
 
         postEditText = findViewById(R.id.postEditText);
         categoryCheckboxes = findViewById(R.id.categoryCheckboxes);
@@ -630,5 +634,40 @@ public class PublicFeedActivity extends AppCompatActivity {
         }
         Intent intent = new Intent(this, ChatRoomListActivity.class);
         startActivity(intent);
+    }
+
+    /**
+     * Initialize FCM token for push notifications
+     */
+    private void initializeFCMToken() {
+        FirebaseMessaging.getInstance().getToken()
+            .addOnCompleteListener(task -> {
+                if (!task.isSuccessful()) {
+                    Log.w(TAG, "Fetching FCM registration token failed", task.getException());
+                    return;
+                }
+
+                // Get new FCM registration token
+                String token = task.getResult();
+                Log.d(TAG, "FCM Registration Token: " + token);
+
+                // Send token to server
+                sendTokenToServer(token);
+            });
+    }
+
+    /**
+     * Send FCM token to server
+     */
+    private void sendTokenToServer(String token) {
+        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+        if (user != null) {
+            MyFirebaseMessagingService.FCMToken fcmToken = new MyFirebaseMessagingService.FCMToken(user.getUid(), token);
+            db.collection("fcm_tokens")
+                .document(user.getUid())
+                .set(fcmToken)
+                .addOnSuccessListener(aVoid -> Log.d(TAG, "FCM token saved successfully"))
+                .addOnFailureListener(e -> Log.e(TAG, "Error saving FCM token", e));
+        }
     }
 }

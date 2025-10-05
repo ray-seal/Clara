@@ -15,6 +15,10 @@ public class Profile {
     public PrivacySettings privacy = new PrivacySettings();
     public long memberSince = 0L;
     public int numPosts = 0;
+    
+    // Privacy settings for new features
+    public boolean hidePostsFromFriends = false;
+    public boolean isPrivate = false;
 
     public Profile() {}
 }

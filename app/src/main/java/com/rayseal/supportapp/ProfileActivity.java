@@ -104,8 +104,12 @@ public class ProfileActivity extends AppCompatActivity {
         findViewById(R.id.btn_friends).setOnClickListener(v -> openFriendsActivity());
         findViewById(R.id.btn_settings).setOnClickListener(v -> openSettings());
 
-        // Edit controls
-        btnEdit.setOnClickListener(v -> setEditing(true));
+        // Edit controls - redirect to settings for own profile
+        btnEdit.setOnClickListener(v -> {
+            if (viewingUserId == null) { // Viewing own profile
+                openSettings();
+            }
+        });
         btnCancel.setOnClickListener(v -> {
             setEditing(false);
             loadProfile();
@@ -113,70 +117,69 @@ public class ProfileActivity extends AppCompatActivity {
         btnSave.setOnClickListener(v -> saveProfile());
         btnAddFriend.setOnClickListener(v -> sendFriendRequest());
 
-        // Photo pickers (+ overlays)
-        imgProfilePic.setOnClickListener(v -> {
-            if (isEditing) pickImage(PICK_PROFILE_PIC);
-        });
-        profilePhotoPlus.setOnClickListener(v -> pickImage(PICK_PROFILE_PIC));
+        // Photo pickers (+ overlays) - disabled since editing moved to settings
+        // imgProfilePic.setOnClickListener(v -> {
+        //     if (isEditing) pickImage(PICK_PROFILE_PIC);
+        // });
+        // profilePhotoPlus.setOnClickListener(v -> pickImage(PICK_PROFILE_PIC));
 
-        imgCoverPhoto.setOnClickListener(v -> {
-            if (isEditing) pickImage(PICK_COVER_PHOTO);
-        });
-        coverPhotoPlus.setOnClickListener(v -> pickImage(PICK_COVER_PHOTO));
+        // imgCoverPhoto.setOnClickListener(v -> {
+        //     if (isEditing) pickImage(PICK_COVER_PHOTO);
+        // });
+        // coverPhotoPlus.setOnClickListener(v -> pickImage(PICK_COVER_PHOTO));
 
         setEditing(false);
         loadProfile();
     }
 
     private void setEditing(boolean editing) {
-        isEditing = editing;
+        // Disable editing functionality - redirect to settings instead
+        isEditing = false;
+        editing = false;
         boolean isOwnProfile = viewingUserId == null || viewingUserId.equals(mAuth.getCurrentUser().getUid());
         
-        // Only allow editing if it's the user's own profile
-        if (!isOwnProfile) {
-            editing = false;
-            isEditing = false;
-        }
-        
-        editDisplayName.setEnabled(editing);
-        editDisplayName.setInputType(editing ? InputType.TYPE_CLASS_TEXT : InputType.TYPE_NULL);
-        editActualName.setEnabled(editing);
-        editActualName.setInputType(editing ? InputType.TYPE_CLASS_TEXT : InputType.TYPE_NULL);
-        editBio.setEnabled(editing);
-        editBio.setInputType(editing ? InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_MULTI_LINE : InputType.TYPE_NULL);
-        editContact.setEnabled(editing);
-        editContact.setInputType(editing ? InputType.TYPE_CLASS_TEXT : InputType.TYPE_NULL);
+        // Always disable editing fields since we're using settings page
+        editDisplayName.setEnabled(false);
+        editDisplayName.setInputType(InputType.TYPE_NULL);
+        editActualName.setEnabled(false);
+        editActualName.setInputType(InputType.TYPE_NULL);
+        editBio.setEnabled(false);
+        editBio.setInputType(InputType.TYPE_NULL);
+        editContact.setEnabled(false);
+        editContact.setInputType(InputType.TYPE_NULL);
 
-        // Privacy switches - only show for own profile
+        // Disable privacy switches - handled in settings
         if (isOwnProfile) {
-            switchDisplayName.setEnabled(editing);
-            switchActualName.setEnabled(editing);
-            switchProfilePic.setEnabled(editing);
-            switchCoverPhoto.setEnabled(editing);
-            switchCategories.setEnabled(editing);
-            switchBio.setEnabled(editing);
-            switchContact.setEnabled(editing);
-            switchStats.setEnabled(editing);
-            switchPrivateMessages.setEnabled(editing);
-            switchFriendRequests.setEnabled(editing);
-            switchChatInvites.setEnabled(editing);
+            switchDisplayName.setEnabled(false);
+            switchActualName.setEnabled(false);
+            switchProfilePic.setEnabled(false);
+            switchCoverPhoto.setEnabled(false);
+            switchCategories.setEnabled(false);
+            switchBio.setEnabled(false);
+            switchContact.setEnabled(false);
+            switchStats.setEnabled(false);
+            switchPrivateMessages.setEnabled(false);
+            switchFriendRequests.setEnabled(false);
+            switchChatInvites.setEnabled(false);
         }
 
         // Show/hide edit/save/cancel buttons
         if (isOwnProfile) {
-            btnSave.setVisibility(editing ? View.VISIBLE : View.GONE);
-            btnCancel.setVisibility(editing ? View.VISIBLE : View.GONE);
-            btnEdit.setVisibility(editing ? View.GONE : View.VISIBLE);
+            // For own profile, hide edit functionality and show settings button instead
+            btnSave.setVisibility(View.GONE);
+            btnCancel.setVisibility(View.GONE);
+            btnEdit.setVisibility(View.GONE);
+            // Settings button visibility is handled in fillViews method
         }
 
-        // Show/hide photo overlay buttons
-        profilePhotoPlus.setVisibility(editing && isOwnProfile ? View.VISIBLE : View.GONE);
-        coverPhotoPlus.setVisibility(editing && isOwnProfile ? View.VISIBLE : View.GONE);
+        // Hide photo overlay buttons (editing disabled)
+        profilePhotoPlus.setVisibility(View.GONE);
+        coverPhotoPlus.setVisibility(View.GONE);
 
-        // Enable/disable category checkboxes
+        // Disable category checkboxes (editing disabled)
         for (int i = 0; i < categoriesLayout.getChildCount(); i++) {
             View v = categoriesLayout.getChildAt(i);
-            v.setEnabled(editing && isOwnProfile);
+            v.setEnabled(false);
         }
     }
 
@@ -499,7 +502,8 @@ public class ProfileActivity extends AppCompatActivity {
     }
 
     private void openSettings() {
-        Toast.makeText(this, "Settings coming soon", Toast.LENGTH_SHORT).show();
+        Intent intent = new Intent(this, SettingsActivity.class);
+        startActivity(intent);
     }
 
     private void openFriendsActivity() {

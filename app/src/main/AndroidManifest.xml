@@ -7,6 +7,8 @@
   <!-- For Android 13+ -->
   <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
   <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
+  <!-- For push notifications -->
+  <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
 <application
 android:allowBackup="true"
@@ -30,8 +32,19 @@ android:theme="@style/Theme.SupportApp">
 <activity android:name=".ChatRoomListActivity" />
 <activity android:name=".ChatRoomActivity" />
 <activity android:name=".FriendsListActivity" />
+<activity android:name=".NotificationsActivity" />
+<activity android:name=".SettingsActivity" />
 <activity android:name=".ImageViewerActivity" 
           android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen" />
+
+<!-- Firebase Messaging Service -->
+<service
+    android:name=".MyFirebaseMessagingService"
+    android:exported="false">
+    <intent-filter>
+        <action android:name="com.google.firebase.MESSAGING_EVENT" />
+    </intent-filter>
+</service>
   
 </application>
 
