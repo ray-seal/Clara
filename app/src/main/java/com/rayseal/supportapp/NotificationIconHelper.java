@@ -42,7 +42,7 @@ public class NotificationIconHelper {
         
         unreadListener = FirebaseFirestore.getInstance()
             .collection("notifications")
-            .whereEqualTo("recipientId", currentUserId)
+            .whereEqualTo("userId", currentUserId)
             .whereEqualTo("isRead", false)
             .addSnapshotListener((querySnapshot, error) -> {
                 if (error != null) {

@@ -105,9 +105,20 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
                  
             // Click to enlarge image
             holder.postImageView.setOnClickListener(v -> {
-                Intent intent = new Intent(context, ImageViewerActivity.class);
-                intent.putExtra("imageUrl", post.imageUrl);
-                context.startActivity(intent);
+                try {
+                    if (post.imageUrl != null && !post.imageUrl.isEmpty()) {
+                        android.util.Log.d("PostAdapter", "Opening image viewer with URL: " + post.imageUrl);
+                        Intent intent = new Intent(context, ImageViewerActivity.class);
+                        intent.putExtra("imageUrl", post.imageUrl);
+                        context.startActivity(intent);
+                    } else {
+                        android.util.Log.e("PostAdapter", "Image URL is null or empty");
+                        Toast.makeText(context, "Image not available", Toast.LENGTH_SHORT).show();
+                    }
+                } catch (Exception e) {
+                    android.util.Log.e("PostAdapter", "Error opening image viewer", e);
+                    Toast.makeText(context, "Error opening image", Toast.LENGTH_SHORT).show();
+                }
             });
         } catch (Exception e) {
             holder.postImageView.setVisibility(View.GONE);

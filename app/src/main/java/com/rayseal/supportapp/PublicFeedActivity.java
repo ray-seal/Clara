@@ -40,6 +40,7 @@ public class PublicFeedActivity extends AppCompatActivity {
     private PostAdapter postAdapter;
     private CheckBox anonymousCheckbox;
     private NotificationIconHelper notificationIconHelper;
+    private String scrollToPostId; // For notification navigation
     private List<String> categories = Arrays.asList(
             "Anxiety","Depression","Insomnia","PTSD","Gender Dysphoria","Addiction","Other"
     );
@@ -81,6 +82,9 @@ public class PublicFeedActivity extends AppCompatActivity {
         // Initialize notification icon with badge
         View notificationIconLayout = findViewById(R.id.notificationIconLayout);
         notificationIconHelper = new NotificationIconHelper(this, notificationIconLayout);
+
+        // Check if we need to scroll to a specific post (from notification click)
+        scrollToPostId = getIntent().getStringExtra("scrollToPostId");
 
         // PROFILE AVATAR IN TOP BAR
         ImageView userAvatar = findViewById(R.id.userAvatar);
@@ -588,6 +592,11 @@ public class PublicFeedActivity extends AppCompatActivity {
                     postAdapter.notifyDataSetChanged();
                     Log.d(TAG, "UI updated - postAdapter.notifyDataSetChanged() called");
                     
+                    // Handle scroll to specific post if requested
+                    if (scrollToPostId != null) {
+                        scrollToPost(scrollToPostId);
+                    }
+                    
                     if (posts.isEmpty()) {
                         String message = selectedFilter.equals("All") ? 
                             "No posts to display. Try creating one!" : 
@@ -697,6 +706,33 @@ public class PublicFeedActivity extends AppCompatActivity {
         super.onDestroy();
         if (notificationIconHelper != null) {
             notificationIconHelper.cleanup();
+        }
+    }
+
+    /**
+     * Scroll to a specific post by ID (for notification navigation)
+     */
+    private void scrollToPost(String postId) {
+        if (postId == null || posts == null) return;
+        
+        for (int i = 0; i < posts.size(); i++) {
+            if (postId.equals(posts.get(i).postId)) {
+                final int position = i; // Make final for lambda
+                postsRecyclerView.scrollToPosition(position);
+                // Highlight the post briefly
+                postsRecyclerView.postDelayed(() -> {
+                    if (position < posts.size()) {
+                        View targetView = postsRecyclerView.getLayoutManager().findViewByPosition(position);
+                        if (targetView != null) {
+                            // Briefly highlight the post
+                            int originalColor = targetView.getDrawingCacheBackgroundColor();
+                            targetView.setBackgroundColor(getResources().getColor(android.R.color.holo_blue_light));
+                            targetView.postDelayed(() -> targetView.setBackgroundColor(originalColor), 2000);
+                        }
+                    }
+                }, 500);
+                break;
+            }
         }
     }
 }

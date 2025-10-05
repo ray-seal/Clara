@@ -135,16 +135,13 @@ public class FriendsListActivity extends AppCompatActivity {
         // Highlight selected button and show/hide search elements
         if (currentView.equals("friends")) {
             btnFriends.setBackgroundTintList(getColorStateList(android.R.color.holo_blue_light));
-            searchInput.setVisibility(View.GONE);
-            findViewById(R.id.btnSearchUser).setVisibility(View.GONE);
+            findViewById(R.id.searchSection).setVisibility(View.GONE);
         } else if (currentView.equals("requests")) {
             btnRequests.setBackgroundTintList(getColorStateList(android.R.color.holo_blue_light));
-            searchInput.setVisibility(View.GONE);
-            findViewById(R.id.btnSearchUser).setVisibility(View.GONE);
+            findViewById(R.id.searchSection).setVisibility(View.GONE);
         } else {
             btnSearch.setBackgroundTintList(getColorStateList(android.R.color.holo_blue_light));
-            searchInput.setVisibility(View.VISIBLE);
-            findViewById(R.id.btnSearchUser).setVisibility(View.VISIBLE);
+            findViewById(R.id.searchSection).setVisibility(View.VISIBLE);
         }
     }
 

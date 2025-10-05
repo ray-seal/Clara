@@ -3,6 +3,16 @@ id("com.android.application")
 id("com.google.gms.google-services")
 }
 
+import java.util.Properties
+import java.io.FileInputStream
+
+// Load keystore properties
+val keystorePropertiesFile = rootProject.file("keystore.properties")
+val keystoreProperties = Properties()
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(FileInputStream(keystorePropertiesFile))
+}
+
 android {
 namespace = "com.rayseal.supportapp"
 compileSdk = 34
@@ -15,10 +25,21 @@ versionCode = 1
 versionName = "1.0"
 }
 
+signingConfigs {
+    create("release") {
+        keyAlias = keystoreProperties["keyAlias"] as String? ?: "clara"
+        keyPassword = keystoreProperties["keyPassword"] as String? ?: "clarapass"
+        storeFile = file(keystoreProperties["storeFile"] as String? ?: "clara-release-key.keystore")
+        storePassword = keystoreProperties["storePassword"] as String? ?: "clarapass"
+    }
+}
+
 buildTypes {
 getByName("release") {
 isMinifyEnabled = false
+isShrinkResources = false
 proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+signingConfig = signingConfigs.getByName("release")
 }
 }
 

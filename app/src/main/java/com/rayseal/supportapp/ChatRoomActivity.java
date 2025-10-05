@@ -89,9 +89,27 @@ public class ChatRoomActivity extends AppCompatActivity {
                 // Only check/add membership for private rooms
                 if (room.isPrivate) {
                     List<String> members = room.members != null ? room.members : new ArrayList<>();
-                    if (!members.contains(currentUserId)) {
-                        mDatabase.child("chatRooms").child(roomId).child("members").push().setValue(currentUserId);
+                    // Check if user has access (is creator or is in members list)
+                    if (!currentUserId.equals(room.createdBy) && !members.contains(currentUserId)) {
+                        // User is not the creator and not in members list - access denied
+                        Toast.makeText(ChatRoomActivity.this, "Access denied: You need to be invited to join this private room", Toast.LENGTH_LONG).show();
+                        finish();
+                        return;
                     }
+                    // If user is creator but not in members list, add them
+                    if (currentUserId.equals(room.createdBy) && !members.contains(currentUserId)) {
+                        members.add(currentUserId);
+                        mDatabase.child("chatRooms").child(roomId).child("members").setValue(members)
+                            .addOnSuccessListener(aVoid -> {
+                                android.util.Log.d("ChatRoomActivity", "Successfully added creator to private room members");
+                            })
+                            .addOnFailureListener(e -> {
+                                android.util.Log.e("ChatRoomActivity", "Failed to add creator to private room", e);
+                            });
+                    }
+                    android.util.Log.d("ChatRoomActivity", "Access granted to private room: " + roomName);
+                } else {
+                    android.util.Log.d("ChatRoomActivity", "Joined public room: " + roomName);
                 }
             }
             @Override
@@ -352,10 +370,45 @@ public class ChatRoomActivity extends AppCompatActivity {
     private void inviteFriendsToRoom(List<String> friendIds) {
         DatabaseReference roomRef = mDatabase.child("chatRooms").child(roomId);
         
-        for (String friendId : friendIds) {
-            roomRef.child("members").push().setValue(friendId);
-        }
-        
-        Toast.makeText(this, "Invitations sent to " + friendIds.size() + " friend(s)!", Toast.LENGTH_SHORT).show();
+        // First get current members list, then add new members
+        roomRef.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                ChatRoom room = snapshot.getValue(ChatRoom.class);
+                if (room != null) {
+                    List<String> currentMembers = room.members != null ? new ArrayList<>(room.members) : new ArrayList<>();
+                    
+                    // Add invited friends who aren't already members
+                    int addedCount = 0;
+                    for (String friendId : friendIds) {
+                        if (!currentMembers.contains(friendId)) {
+                            currentMembers.add(friendId);
+                            addedCount++;
+                        }
+                    }
+                    final int newMembersCount = addedCount; // Make final for lambda
+                    
+                    // Update the members list in Firebase
+                    roomRef.child("members").setValue(currentMembers)
+                        .addOnSuccessListener(aVoid -> {
+                            if (newMembersCount > 0) {
+                                Toast.makeText(ChatRoomActivity.this, "Invited " + newMembersCount + " friend(s) to the room!", Toast.LENGTH_SHORT).show();
+                            } else {
+                                Toast.makeText(ChatRoomActivity.this, "All selected friends are already members", Toast.LENGTH_SHORT).show();
+                            }
+                        })
+                        .addOnFailureListener(e -> {
+                            Toast.makeText(ChatRoomActivity.this, "Failed to invite friends: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                        });
+                } else {
+                    Toast.makeText(ChatRoomActivity.this, "Room not found", Toast.LENGTH_SHORT).show();
+                }
+            }
+            
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+                Toast.makeText(ChatRoomActivity.this, "Failed to load room data", Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 }
