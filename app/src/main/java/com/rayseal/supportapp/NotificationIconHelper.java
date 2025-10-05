@@ -32,23 +32,42 @@ public class NotificationIconHelper {
     }
     
     private void startListeningForUnreadNotifications() {
+        if (FirebaseAuth.getInstance().getCurrentUser() == null) {
+            android.util.Log.w("NotificationIconHelper", "No current user, cannot listen for notifications");
+            return;
+        }
+        
         String currentUserId = FirebaseAuth.getInstance().getCurrentUser().getUid();
+        android.util.Log.d("NotificationIconHelper", "Starting notification listener for user: " + currentUserId);
         
         unreadListener = FirebaseFirestore.getInstance()
             .collection("notifications")
             .whereEqualTo("recipientId", currentUserId)
             .whereEqualTo("isRead", false)
             .addSnapshotListener((querySnapshot, error) -> {
-                if (error != null || querySnapshot == null) {
+                if (error != null) {
+                    android.util.Log.e("NotificationIconHelper", "Error listening for notifications", error);
+                    return;
+                }
+                
+                if (querySnapshot == null) {
+                    android.util.Log.w("NotificationIconHelper", "QuerySnapshot is null");
                     return;
                 }
                 
                 int unreadCount = querySnapshot.size();
+                android.util.Log.d("NotificationIconHelper", "Found " + unreadCount + " unread notifications");
                 updateBadge(unreadCount);
             });
     }
     
     private void updateBadge(int count) {
+        android.util.Log.d("NotificationIconHelper", "Updating badge with count: " + count);
+        if (badgeText == null) {
+            android.util.Log.e("NotificationIconHelper", "Badge text view is null!");
+            return;
+        }
+        
         if (count > 0) {
             badgeText.setVisibility(View.VISIBLE);
             if (count > 99) {
@@ -56,8 +75,10 @@ public class NotificationIconHelper {
             } else {
                 badgeText.setText(String.valueOf(count));
             }
+            android.util.Log.d("NotificationIconHelper", "Badge set to visible with text: " + badgeText.getText());
         } else {
             badgeText.setVisibility(View.GONE);
+            android.util.Log.d("NotificationIconHelper", "Badge hidden (no unread notifications)");
         }
     }
     

@@ -359,14 +359,20 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
         .orderBy("timestamp")
         .get()
         .addOnSuccessListener(querySnapshot -> {
+            android.util.Log.d("PostAdapter", "Found " + querySnapshot.size() + " comments for post " + post.postId);
             for (DocumentSnapshot doc : querySnapshot.getDocuments()) {
                 Comment comment = doc.toObject(Comment.class);
                 if (comment != null) {
                     comment.commentId = doc.getId();
                     comments.add(comment);
+                    android.util.Log.d("PostAdapter", "Added comment: " + comment.content);
                 }
             }
             commentAdapter.notifyDataSetChanged();
+        })
+        .addOnFailureListener(e -> {
+            android.util.Log.e("PostAdapter", "Error loading comments", e);
+            Toast.makeText(context, "Error loading comments", Toast.LENGTH_SHORT).show();
         });
     
     // Add comment listener
@@ -381,8 +387,8 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
         firestore.collection("profiles").document(currentUserId)
             .get()
             .addOnSuccessListener(doc -> {
-                String authorName = "Anonymous";
-                String authorProfilePicture = "";
+                final String authorName;
+                final String authorProfilePicture;
                 
                 if (doc.exists()) {
                     Profile profile = doc.toObject(Profile.class);
@@ -390,7 +396,13 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
                         authorName = profile.displayName != null && !profile.displayName.isEmpty() ? 
                             profile.displayName : "Anonymous";
                         authorProfilePicture = profile.profilePictureUrl != null ? profile.profilePictureUrl : "";
+                    } else {
+                        authorName = "Anonymous";
+                        authorProfilePicture = "";
                     }
+                } else {
+                    authorName = "Anonymous";
+                    authorProfilePicture = "";
                 }
                 
                 Comment newComment = new Comment(post.postId, currentUserId, authorName, 
@@ -408,6 +420,11 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
                         
                         post.commentCount++;
                         notifyItemChanged(position);
+                        
+                        // Create notification for comment (if not commenting on own post)
+                        if (!currentUserId.equals(post.userId)) {
+                            createCommentNotification(post, authorName);
+                        }
                         
                         commentEditText.setText("");
                         commentsRecyclerView.scrollToPosition(comments.size() - 1);
@@ -489,6 +506,27 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
                 }
             }
         });
+  }
+
+  private void createCommentNotification(Post post, String commenterName) {
+    // Create notification for comment
+    Notification notification = Notification.createCommentNotification(
+        post.userId,
+        currentUserId,
+        commenterName,
+        "", // profile picture will be filled by notification creation
+        post.postId,
+        "" // commentId - we don't have it here, will be empty
+    );
+    
+    firestore.collection("notifications")
+        .add(notification)
+        .addOnSuccessListener(documentReference -> {
+            android.util.Log.d("PostAdapter", "Comment notification created successfully");
+            // Send push notification
+            sendPushNotification(post.userId, notification);
+        })
+        .addOnFailureListener(e -> android.util.Log.e("PostAdapter", "Failed to create comment notification", e));
   }
 
   // Push notification request model

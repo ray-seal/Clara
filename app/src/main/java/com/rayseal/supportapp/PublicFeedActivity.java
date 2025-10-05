@@ -1,5 +1,7 @@
 package com.rayseal.supportapp;
 
+import android.Manifest;
+import android.os.Build;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.*;
@@ -48,6 +50,7 @@ public class PublicFeedActivity extends AppCompatActivity {
     private Uri imageUri = null;
     private static final int PICK_IMAGE_REQUEST = 1;
     private static final int REQUEST_IMAGE_PERMISSION = 100;
+    private static final int NOTIFICATION_PERMISSION_REQUEST_CODE = 1001;
     private static final String TAG = "PublicFeedActivity";
 
     @Override
@@ -60,6 +63,9 @@ public class PublicFeedActivity extends AppCompatActivity {
 
         // Initialize FCM token
         initializeFCMToken();
+
+        // Request notification permissions as fallback
+        requestNotificationPermission();
 
         postEditText = findViewById(R.id.postEditText);
         categoryCheckboxes = findViewById(R.id.categoryCheckboxes);
@@ -587,12 +593,8 @@ public class PublicFeedActivity extends AppCompatActivity {
                             "No posts to display. Try creating one!" : 
                             "No posts found for '" + selectedFilter + "'. Try 'All' or create a post in this category.";
                         Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
-                    } else {
-                        String message = selectedFilter.equals("All") ? 
-                            "Loaded " + posts.size() + " post(s)" :
-                            "Loaded " + posts.size() + " post(s) for '" + selectedFilter + "'";
-                        Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
                     }
+                    // Remove the "loaded X posts" toast message as requested
                 });
                 
             } else {
@@ -639,6 +641,20 @@ public class PublicFeedActivity extends AppCompatActivity {
         }
         Intent intent = new Intent(this, ChatRoomListActivity.class);
         startActivity(intent);
+    }
+
+    /**
+     * Request notification permissions for Android 13+
+     */
+    private void requestNotificationPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) 
+                != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(this, 
+                    new String[]{Manifest.permission.POST_NOTIFICATIONS}, 
+                    NOTIFICATION_PERMISSION_REQUEST_CODE);
+            }
+        }
     }
 
     /**
