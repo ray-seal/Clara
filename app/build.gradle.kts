@@ -60,4 +60,6 @@ implementation("com.google.firebase:firebase-messaging:23.4.0")
 implementation("com.google.android.gms:play-services-auth:20.7.0")
 implementation("androidx.browser:browser:1.5.0")
 implementation("com.github.bumptech.glide:glide:4.16.0")
+// For HTTP requests to Cloud Functions (if using Option 2)
+implementation("com.squareup.okhttp3:okhttp:4.12.0")
 }
