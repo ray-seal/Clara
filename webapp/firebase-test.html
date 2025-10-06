@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clara Firebase Test</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-container {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #e0e0e0;
+            border-radius: 10px;
+        }
+        .test-btn {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            cursor: pointer;
+            margin: 5px;
+            font-weight: 600;
+        }
+        .test-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+        .success {
+            color: #4CAF50;
+            font-weight: bold;
+        }
+        .error {
+            color: #f44336;
+            font-weight: bold;
+        }
+        .info {
+            color: #2196F3;
+            font-weight: bold;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        #log {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+        }
+        .support-groups-list {
+            display: grid;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .support-group {
+            padding: 15px;
+            border: 1px solid #e0e0e0;
+            border-radius: 10px;
+            background: #fafafa;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🧠 Clara Mental Health Support App - Firebase Test</h1>
+        <p><strong>Project:</strong> supportapp-9df04</p>
+        
+        <div class="test-section">
+            <h2>🔧 Connection Test</h2>
+            <button class="test-btn" onclick="testFirebaseConnection()">Test Firebase Connection</button>
+            <button class="test-btn" onclick="testFirestoreConnection()">Test Firestore Connection</button>
+            <div id="connection-status"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>🔐 Authentication Test</h2>
+            
+            <div id="auth-status" class="info">Not authenticated</div>
+            
+            <h3>Anonymous Sign-in (Recommended for Privacy)</h3>
+            <button class="test-btn" onclick="testAnonymousSignIn()">Sign In Anonymously</button>
+            
+            <h3>Email/Password Authentication</h3>
+            <div class="form-group">
+                <label for="test-email">Email:</label>
+                <input type="email" id="test-email" placeholder="test@example.com">
+            </div>
+            <div class="form-group">
+                <label for="test-password">Password:</label>
+                <input type="password" id="test-password" placeholder="password123">
+            </div>
+            <button class="test-btn" onclick="testSignUp()">Create Test Account</button>
+            <button class="test-btn" onclick="testSignIn()">Sign In</button>
+            <button class="test-btn" onclick="testSignOut()">Sign Out</button>
+        </div>
+
+        <div class="test-section">
+            <h2>💬 Support Groups Test</h2>
+            <button class="test-btn" onclick="testCreateSupportGroups()">Create Mental Health Support Groups</button>
+            <button class="test-btn" onclick="testLoadSupportGroups()">Load Support Groups</button>
+            <button class="test-btn" onclick="testJoinGroup()">Join Anxiety Support Group</button>
+            <div id="support-groups-list" class="support-groups-list"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>🆘 Crisis Resources Test</h2>
+            <button class="test-btn" onclick="testCrisisDetection()">Test Crisis Keyword Detection</button>
+            <button class="test-btn" onclick="testCrisisModal()">Show Crisis Resources</button>
+            <button class="test-btn" onclick="testWellnessCheck()">Test Wellness Check</button>
+        </div>
+
+        <div class="test-section">
+            <h2>📝 Debug Log</h2>
+            <button class="test-btn" onclick="clearLog()">Clear Log</button>
+            <div id="log"></div>
+        </div>
+    </div>
+
+    <!-- Import Firebase and Clara modules -->
+    <script type="module">
+        import { authManager } from './js/auth.js';
+        import { supportGroupsManager } from './js/support-groups.js';
+        import { crisisResourcesManager } from './js/crisis-resources.js';
+        import { db, auth, APP_CONFIG } from './js/config.js';
+        import { collection, getDocs, addDoc, doc, setDoc } from 'https://www.gstatic.com/firebasejs/10.3.0/firebase-firestore.js';
+
+        // Make modules globally available for testing
+        window.authManager = authManager;
+        window.supportGroupsManager = supportGroupsManager;
+        window.crisisResourcesManager = crisisResourcesManager;
+        window.db = db;
+        window.auth = auth;
+
+        function log(message, type = 'info') {
+            const logElement = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            const className = type === 'error' ? 'error' : type === 'success' ? 'success' : 'info';
+            logElement.innerHTML += `<span class="${className}">[${timestamp}] ${message}</span>\n`;
+            logElement.scrollTop = logElement.scrollHeight;
+            console.log(`[Clara Test] ${message}`);
+        }
+
+        window.log = log;
+
+        // Initialize managers
+        async function initialize() {
+            try {
+                log('Initializing Clara Mental Health Support App...', 'info');
+                
+                // Initialize authentication
+                await authManager.initialize();
+                log('✅ Authentication manager initialized', 'success');
+                
+                // Initialize support groups
+                await supportGroupsManager.initialize();
+                log('✅ Support groups manager initialized', 'success');
+                
+                // Initialize crisis resources
+                await crisisResourcesManager.initialize();
+                log('✅ Crisis resources manager initialized', 'success');
+                
+                // Set up auth state listener
+                authManager.onAuthStateChange((user, profile) => {
+                    updateAuthStatus(user, profile);
+                });
+                
+                log('🎉 Clara app initialized successfully!', 'success');
+                
+            } catch (error) {
+                log(`❌ Initialization error: ${error.message}`, 'error');
+                console.error('Initialization error:', error);
+            }
+        }
+
+        function updateAuthStatus(user, profile) {
+            const statusElement = document.getElementById('auth-status');
+            if (user) {
+                const userType = user.isAnonymous ? 'Anonymous User' : profile?.displayName || user.email;
+                const privacy = user.isAnonymous ? ' (Private & Secure)' : '';
+                statusElement.innerHTML = `<span class="success">✅ Signed in as: ${userType}${privacy}</span>`;
+                log(`User signed in: ${userType}${privacy}`, 'success');
+            } else {
+                statusElement.innerHTML = '<span class="info">Not authenticated</span>';
+                log('User signed out', 'info');
+            }
+        }
+
+        // Test functions
+        window.testFirebaseConnection = async function() {
+            try {
+                log('Testing Firebase connection...', 'info');
+                if (auth) {
+                    log('✅ Firebase Auth connected', 'success');
+                    document.getElementById('connection-status').innerHTML = '<span class="success">✅ Firebase Connected</span>';
+                } else {
+                    throw new Error('Firebase Auth not initialized');
+                }
+            } catch (error) {
+                log(`❌ Firebase connection failed: ${error.message}`, 'error');
+                document.getElementById('connection-status').innerHTML = '<span class="error">❌ Firebase Connection Failed</span>';
+            }
+        };
+
+        window.testFirestoreConnection = async function() {
+            try {
+                log('Testing Firestore connection...', 'info');
+                const testCollection = collection(db, 'test');
+                await getDocs(testCollection);
+                log('✅ Firestore connected successfully', 'success');
+            } catch (error) {
+                log(`❌ Firestore connection failed: ${error.message}`, 'error');
+            }
+        };
+
+        window.testAnonymousSignIn = async function() {
+            try {
+                log('Testing anonymous sign-in...', 'info');
+                const user = await authManager.signInAnonymously();
+                if (user) {
+                    log('✅ Anonymous sign-in successful', 'success');
+                } else {
+                    log('❌ Anonymous sign-in failed', 'error');
+                }
+            } catch (error) {
+                log(`❌ Anonymous sign-in error: ${error.message}`, 'error');
+            }
+        };
+
+        window.testSignUp = async function() {
+            const email = document.getElementById('test-email').value;
+            const password = document.getElementById('test-password').value;
+            
+            if (!email || !password) {
+                log('Please enter email and password', 'error');
+                return;
+            }
+            
+            try {
+                log(`Creating account for ${email}...`, 'info');
+                const user = await authManager.signUp(email, password, 'Test User');
+                if (user) {
+                    log('✅ Account created successfully', 'success');
+                } else {
+                    log('❌ Account creation failed', 'error');
+                }
+            } catch (error) {
+                log(`❌ Sign-up error: ${error.message}`, 'error');
+            }
+        };
+
+        window.testSignIn = async function() {
+            const email = document.getElementById('test-email').value;
+            const password = document.getElementById('test-password').value;
+            
+            if (!email || !password) {
+                log('Please enter email and password', 'error');
+                return;
+            }
+            
+            try {
+                log(`Signing in ${email}...`, 'info');
+                const user = await authManager.signIn(email, password);
+                if (user) {
+                    log('✅ Sign-in successful', 'success');
+                } else {
+                    log('❌ Sign-in failed', 'error');
+                }
+            } catch (error) {
+                log(`❌ Sign-in error: ${error.message}`, 'error');
+            }
+        };
+
+        window.testSignOut = async function() {
+            try {
+                log('Signing out...', 'info');
+                await authManager.signOut();
+                log('✅ Signed out successfully', 'success');
+            } catch (error) {
+                log(`❌ Sign-out error: ${error.message}`, 'error');
+            }
+        };
+
+        window.testCreateSupportGroups = async function() {
+            try {
+                log('Creating mental health support groups...', 'info');
+                
+                // This will create the default support groups
+                await supportGroupsManager.createDefaultSupportGroups();
+                
+                log('✅ Mental health support groups created:', 'success');
+                APP_CONFIG.SUPPORT_GROUPS.forEach(group => {
+                    log(`  ${group.icon} ${group.name} - ${group.description}`, 'info');
+                });
+                
+            } catch (error) {
+                log(`❌ Error creating support groups: ${error.message}`, 'error');
+            }
+        };
+
+        window.testLoadSupportGroups = async function() {
+            try {
+                log('Loading support groups...', 'info');
+                const groups = await supportGroupsManager.getSupportGroups();
+                
+                const listElement = document.getElementById('support-groups-list');
+                listElement.innerHTML = groups.map(group => `
+                    <div class="support-group">
+                        <h4>${group.icon} ${group.name}</h4>
+                        <p>${group.description}</p>
+                        <small>👥 ${group.memberCount || 0} members | 💬 ${group.messageCount || 0} messages</small>
+                    </div>
+                `).join('');
+                
+                log(`✅ Loaded ${groups.length} support groups`, 'success');
+                
+            } catch (error) {
+                log(`❌ Error loading support groups: ${error.message}`, 'error');
+            }
+        };
+
+        window.testJoinGroup = async function() {
+            try {
+                if (!authManager.isSignedIn()) {
+                    log('Please sign in first to join support groups', 'error');
+                    return;
+                }
+                
+                log('Joining Anxiety Support Group...', 'info');
+                const success = await supportGroupsManager.joinSupportGroup('anxiety-support');
+                
+                if (success) {
+                    log('✅ Successfully joined Anxiety Support Group', 'success');
+                } else {
+                    log('❌ Failed to join support group', 'error');
+                }
+                
+            } catch (error) {
+                log(`❌ Error joining support group: ${error.message}`, 'error');
+            }
+        };
+
+        window.testCrisisDetection = function() {
+            log('Testing crisis keyword detection...', 'info');
+            
+            const testText = "I want to hurt myself";
+            const containsCrisis = crisisResourcesManager.crisisKeywords.some(keyword => 
+                testText.toLowerCase().includes(keyword.toLowerCase())
+            );
+            
+            if (containsCrisis) {
+                log('✅ Crisis keywords detected correctly', 'success');
+                log('🚨 Crisis intervention would be triggered', 'info');
+            } else {
+                log('❌ Crisis keywords not detected', 'error');
+            }
+        };
+
+        window.testCrisisModal = function() {
+            log('Showing crisis resources modal...', 'info');
+            crisisResourcesManager.showCrisisModal();
+        };
+
+        window.testWellnessCheck = function() {
+            log('Showing wellness check modal...', 'info');
+            crisisResourcesManager.showWellnessCheck();
+        };
+
+        window.clearLog = function() {
+            document.getElementById('log').innerHTML = '';
+        };
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', initialize);
+    </script>
+</body>
+</html>

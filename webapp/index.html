@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Clara - Connect & Share</title>
+    <title>Clara - Mental Health Support Community</title>
     
     <!-- PWA Meta Tags -->
-    <meta name="description" content="Clara - Connect with friends and share your moments">
-    <meta name="theme-color" content="#FF7043">
+    <meta name="description" content="Clara - A safe space for mental health support, peer connections, and healing together">
+    <meta name="theme-color" content="#667eea">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -72,7 +72,7 @@
             <div class="auth-logo">
                 <img src="icons/icon-192x192.png" alt="Clara">
                 <h1>Clara</h1>
-                <p>Connect & Share</p>
+                <p>Mental Health Support Community</p>
             </div>
 
             <!-- Sign In Form -->
@@ -91,6 +91,9 @@
                 </form>
                 
                 <div class="auth-links">
+                    <button id="anonymous-signin-btn" class="btn btn-secondary btn-full" style="margin-bottom: 15px;">
+                        🔒 Continue Anonymously (Private & Secure)
+                    </button>
                     <a href="#" id="forgot-password-link">Forgot Password?</a>
                     <p>Don't have an account? <a href="#" id="show-signup">Sign Up</a></p>
                 </div>
@@ -120,6 +123,9 @@
                 </form>
                 
                 <div class="auth-links">
+                    <button id="anonymous-signup-btn" class="btn btn-secondary btn-full" style="margin-bottom: 15px;">
+                        🔒 Join Anonymously (No Email Required)
+                    </button>
                     <p>Already have an account? <a href="#" id="show-signin">Sign In</a></p>
                 </div>
             </div>
@@ -170,17 +176,17 @@
                 <span class="material-icons">home</span>
                 <span>Feed</span>
             </button>
-            <button class="nav-btn" data-tab="friends">
-                <span class="material-icons">people</span>
-                <span>Friends</span>
+            <button class="nav-btn" data-tab="support-groups">
+                <span class="material-icons">group</span>
+                <span>Support</span>
             </button>
             <button id="new-post-btn" class="nav-btn new-post">
                 <span class="material-icons">add</span>
-                <span>Post</span>
+                <span>Share</span>
             </button>
-            <button class="nav-btn" data-tab="chat">
-                <span class="material-icons">chat</span>
-                <span>Chat</span>
+            <button class="nav-btn" data-tab="wellness">
+                <span class="material-icons">favorite</span>
+                <span>Wellness</span>
             </button>
             <button class="nav-btn" data-tab="profile">
                 <span class="material-icons">person</span>
@@ -197,17 +203,17 @@
                 </div>
             </div>
 
-            <!-- Friends Tab -->
-            <div id="friends-tab" class="tab-content">
-                <div id="friends-container" class="friends-container">
-                    <!-- Friends content will be loaded here -->
+            <!-- Support Groups Tab -->
+            <div id="support-groups-tab" class="tab-content">
+                <div id="support-groups-container" class="support-groups-container">
+                    <!-- Support groups will be loaded here -->
                 </div>
             </div>
 
-            <!-- Chat Tab -->
-            <div id="chat-tab" class="tab-content">
-                <div id="chat-container" class="chat-container">
-                    <!-- Chat content will be loaded here -->
+            <!-- Wellness Tab -->
+            <div id="wellness-tab" class="tab-content">
+                <div id="wellness-container" class="wellness-container">
+                    <!-- Wellness tools and resources will be loaded here -->
                 </div>
             </div>
 
