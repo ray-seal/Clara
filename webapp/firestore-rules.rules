@@ -1,0 +1,77 @@
+# Firebase Security Rules for Clara PWA Notifications
+# Add these rules to your existing Firestore security rules
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    # Notifications collection - users can read their own notifications
+    match /notifications/{notificationId} {
+      allow read, write: if request.auth != null && request.auth.uid == resource.data.userId;
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+    }
+    
+    # Push notification tokens - users can manage their own tokens
+    match /push_notification_requests/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    # Pending notifications (for cloud functions processing)
+    match /pendingNotifications/{notificationId} {
+      # Only cloud functions can write to this collection
+      allow read: if request.auth != null;
+      allow write: if false; # Only server-side functions can write
+    }
+    
+    # Chat messages - trigger notifications when created
+    match /chatMessages/{messageId} {
+      allow read, write: if request.auth != null;
+      # Additional rule: user must be member of the chat room
+      allow create: if request.auth != null && 
+        exists(/databases/$(database)/documents/chatRooms/$(resource.data.roomId)) &&
+        request.auth.uid in get(/databases/$(database)/documents/chatRooms/$(resource.data.roomId)).data.members;
+    }
+    
+    # Friend requests - trigger notifications when created
+    match /friendRequests/{requestId} {
+      allow read: if request.auth != null && 
+        (request.auth.uid == resource.data.fromUserId || request.auth.uid == resource.data.toUserId);
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.fromUserId;
+      allow update: if request.auth != null && request.auth.uid == resource.data.toUserId;
+      allow delete: if request.auth != null && 
+        (request.auth.uid == resource.data.fromUserId || request.auth.uid == resource.data.toUserId);
+    }
+    
+    # Posts - trigger notifications for friends when created
+    match /posts/{postId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+      allow update, delete: if request.auth != null && request.auth.uid == resource.data.userId;
+    }
+    
+    # Comments - trigger notifications for post authors
+    match /comments/{commentId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+      allow update, delete: if request.auth != null && request.auth.uid == resource.data.userId;
+    }
+    
+    # User profiles - needed for notification targeting
+    match /profiles/{userId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == userId;
+      # Allow reading friends list for notification targeting
+      allow get: if request.auth != null;
+    }
+    
+    # Chat rooms - needed for notification targeting
+    match /chatRooms/{roomId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null;
+      allow update: if request.auth != null && 
+        (request.auth.uid == resource.data.createdBy || 
+         request.auth.uid in resource.data.admins ||
+         request.auth.uid in resource.data.members);
+    }
+  }
+}

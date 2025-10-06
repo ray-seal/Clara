@@ -1,0 +1,15 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <!-- White background -->
+  <rect width="512" height="512" fill="#FFFFFF" rx="80"/>
+  
+  <!-- Orange circle -->
+  <circle cx="256" cy="256" r="180" fill="#FF7043"/>
+  
+  <!-- Inner design - letter C for Clara -->
+  <path d="M256 120 A136 136 0 0 0 256 392 A136 136 0 0 0 338 326 L318 300 A104 104 0 0 1 256 360 A104 104 0 0 1 256 152 A104 104 0 0 1 318 212 L338 186 A136 136 0 0 0 256 120 Z" fill="#FFFFFF"/>
+  
+  <!-- Small decorative dots -->
+  <circle cx="200" cy="200" r="8" fill="#FFFFFF" opacity="0.8"/>
+  <circle cx="312" cy="312" r="8" fill="#FFFFFF" opacity="0.8"/>
+  <circle cx="312" cy="200" r="6" fill="#FFFFFF" opacity="0.6"/>
+</svg>

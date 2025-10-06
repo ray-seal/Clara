@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Clara - Connect & Share</title>
+    
+    <!-- PWA Meta Tags -->
+    <meta name="description" content="Clara - Connect with friends and share your moments">
+    <meta name="theme-color" content="#FF7043">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Clara">
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="manifest.json">
+    
+    <!-- Icons -->
+    <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="icons/favicon-16x16.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png">
+    <link rel="apple-touch-icon" sizes="152x152" href="icons/apple-touch-icon-152x152.png">
+    <link rel="apple-touch-icon" sizes="144x144" href="icons/apple-touch-icon-144x144.png">
+    <link rel="apple-touch-icon" sizes="120x120" href="icons/apple-touch-icon-120x120.png">
+    <link rel="apple-touch-icon" sizes="114x114" href="icons/apple-touch-icon-114x114.png">
+    <link rel="apple-touch-icon" sizes="76x76" href="icons/apple-touch-icon-76x76.png">
+    <link rel="apple-touch-icon" sizes="72x72" href="icons/apple-touch-icon-72x72.png">
+    <link rel="apple-touch-icon" sizes="60x60" href="icons/apple-touch-icon-60x60.png">
+    <link rel="apple-touch-icon" sizes="57x57" href="icons/apple-touch-icon-57x57.png">
+    
+    <!-- Material Icons -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    
+    <!-- Styles -->
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <!-- Install PWA Banner -->
+    <div id="install-banner" class="install-banner" style="display: none;">
+        <div class="install-content">
+            <div class="install-icon">
+                <img src="icons/icon-72x72.png" alt="Clara">
+            </div>
+            <div class="install-text">
+                <h3>Install Clara</h3>
+                <p>Get the full app experience</p>
+            </div>
+            <div class="install-actions">
+                <button id="install-btn" class="btn btn-primary">Install</button>
+                <button id="install-dismiss" class="btn btn-secondary">Not now</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Screen -->
+    <div id="loading-screen" class="loading-screen">
+        <div class="loading-content">
+            <img src="icons/icon-192x192.png" alt="Clara" class="loading-logo">
+            <h1>Clara</h1>
+            <div class="loading-spinner"></div>
+            <p>Loading...</p>
+        </div>
+    </div>
+
+    <!-- Auth Screen -->
+    <div id="auth-screen" class="auth-screen" style="display: none;">
+        <div class="auth-container">
+            <div class="auth-logo">
+                <img src="icons/icon-192x192.png" alt="Clara">
+                <h1>Clara</h1>
+                <p>Connect & Share</p>
+            </div>
+
+            <!-- Sign In Form -->
+            <div id="signin-form" class="auth-form">
+                <h2>Welcome Back</h2>
+                <form id="signin-form-element">
+                    <div class="form-group">
+                        <label for="signin-email">Email</label>
+                        <input type="email" id="signin-email" required autocomplete="email">
+                    </div>
+                    <div class="form-group">
+                        <label for="signin-password">Password</label>
+                        <input type="password" id="signin-password" required autocomplete="current-password">
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-full">Sign In</button>
+                </form>
+                
+                <div class="auth-links">
+                    <a href="#" id="forgot-password-link">Forgot Password?</a>
+                    <p>Don't have an account? <a href="#" id="show-signup">Sign Up</a></p>
+                </div>
+            </div>
+
+            <!-- Sign Up Form -->
+            <div id="signup-form" class="auth-form" style="display: none;">
+                <h2>Create Account</h2>
+                <form id="signup-form-element">
+                    <div class="form-group">
+                        <label for="signup-name">Display Name</label>
+                        <input type="text" id="signup-name" required autocomplete="name">
+                    </div>
+                    <div class="form-group">
+                        <label for="signup-email">Email</label>
+                        <input type="email" id="signup-email" required autocomplete="email">
+                    </div>
+                    <div class="form-group">
+                        <label for="signup-password">Password</label>
+                        <input type="password" id="signup-password" required autocomplete="new-password" minlength="6">
+                    </div>
+                    <div class="form-group">
+                        <label for="signup-confirm">Confirm Password</label>
+                        <input type="password" id="signup-confirm" required autocomplete="new-password" minlength="6">
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-full">Create Account</button>
+                </form>
+                
+                <div class="auth-links">
+                    <p>Already have an account? <a href="#" id="show-signin">Sign In</a></p>
+                </div>
+            </div>
+
+            <!-- Reset Password Form -->
+            <div id="reset-form" class="auth-form" style="display: none;">
+                <h2>Reset Password</h2>
+                <p>Enter your email to receive a password reset link</p>
+                <form id="reset-form-element">
+                    <div class="form-group">
+                        <label for="reset-email">Email</label>
+                        <input type="email" id="reset-email" required autocomplete="email">
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-full">Send Reset Link</button>
+                </form>
+                
+                <div class="auth-links">
+                    <p><a href="#" id="back-to-signin">Back to Sign In</a></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main App -->
+    <div id="main-app" class="main-app" style="display: none;">
+        <!-- Top App Bar -->
+        <header class="app-header">
+            <div class="header-content">
+                <div class="header-left">
+                    <img src="icons/icon-72x72.png" alt="Clara" class="header-logo">
+                    <h1>Clara</h1>
+                </div>
+                <div class="header-right">
+                    <button id="notifications-btn" class="icon-btn" title="Notifications">
+                        <span class="material-icons">notifications</span>
+                        <span id="notification-badge" class="notification-badge" style="display: none;"></span>
+                    </button>
+                    <button id="profile-menu-btn" class="icon-btn" title="Profile">
+                        <span class="material-icons">account_circle</span>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Navigation -->
+        <nav class="bottom-nav">
+            <button class="nav-btn active" data-tab="feed">
+                <span class="material-icons">home</span>
+                <span>Feed</span>
+            </button>
+            <button class="nav-btn" data-tab="friends">
+                <span class="material-icons">people</span>
+                <span>Friends</span>
+            </button>
+            <button id="new-post-btn" class="nav-btn new-post">
+                <span class="material-icons">add</span>
+                <span>Post</span>
+            </button>
+            <button class="nav-btn" data-tab="chat">
+                <span class="material-icons">chat</span>
+                <span>Chat</span>
+            </button>
+            <button class="nav-btn" data-tab="profile">
+                <span class="material-icons">person</span>
+                <span>Profile</span>
+            </button>
+        </nav>
+
+        <!-- Content Area -->
+        <main class="main-content">
+            <!-- Feed Tab -->
+            <div id="feed-tab" class="tab-content active">
+                <div id="feed-container" class="feed-container">
+                    <!-- Posts will be loaded here -->
+                </div>
+            </div>
+
+            <!-- Friends Tab -->
+            <div id="friends-tab" class="tab-content">
+                <div id="friends-container" class="friends-container">
+                    <!-- Friends content will be loaded here -->
+                </div>
+            </div>
+
+            <!-- Chat Tab -->
+            <div id="chat-tab" class="tab-content">
+                <div id="chat-container" class="chat-container">
+                    <!-- Chat content will be loaded here -->
+                </div>
+            </div>
+
+            <!-- Profile Tab -->
+            <div id="profile-tab" class="tab-content">
+                <div id="profile-container" class="profile-container">
+                    <!-- Profile content will be loaded here -->
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Notification Permission Banner -->
+    <div id="notification-permission-banner" class="notification-banner" style="display: none;">
+        <div class="banner-content">
+            <span class="material-icons">notifications</span>
+            <div class="banner-text">
+                <h4>Stay Connected</h4>
+                <p>Enable notifications to get updates from friends</p>
+            </div>
+            <div class="banner-actions">
+                <button id="enable-notifications" class="btn btn-primary">Enable</button>
+                <button id="dismiss-notifications" class="btn btn-secondary">Not now</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script type="module" src="js/app.js"></script>
+    
+    <!-- Service Worker Registration -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js')
+                    .then(registration => {
+                        console.log('SW registered: ', registration);
+                    })
+                    .catch(registrationError => {
+                        console.log('SW registration failed: ', registrationError);
+                    });
+            });
+        }
+    </script>
+</body>
+</html>

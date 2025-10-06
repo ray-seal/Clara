@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clara Friends Demo</title>
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .demo-card {
+            background: white;
+            border-radius: 8px;
+            padding: 24px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .friend-item {
+            display: flex;
+            align-items: center;
+            padding: 16px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            background: white;
+        }
+        .friend-avatar {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: #2196F3;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 16px;
+            color: white;
+        }
+        .friend-avatar img {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+        .friend-info {
+            flex: 1;
+        }
+        .friend-name {
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+        .friend-status {
+            color: #666;
+            font-size: 14px;
+        }
+        .friend-actions {
+            display: flex;
+            gap: 8px;
+        }
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .btn-primary {
+            background: #2196F3;
+            color: white;
+        }
+        .btn-secondary {
+            background: #f5f5f5;
+            color: #333;
+        }
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        .modal-content {
+            background: white;
+            border-radius: 8px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        .material-icons {
+            font-family: 'Material Icons';
+        }
+        .icon-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 50%;
+        }
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 2000;
+        }
+        .toast {
+            background: #4CAF50;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 4px;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .toast.error {
+            background: #f44336;
+        }
+        .toast.info {
+            background: #2196F3;
+        }
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+</head>
+<body>
+    <div class="demo-card">
+        <h1>Clara Friends System Demo</h1>
+        <p>This demonstrates the friends functionality for the Clara PWA.</p>
+        
+        <div class="demo-controls">
+            <button class="btn btn-primary" onclick="loadFriendsDemo()">
+                <span class="material-icons">people</span>
+                Load Friends
+            </button>
+            <button class="btn btn-secondary" onclick="showFindFriendsDemo()">
+                <span class="material-icons">person_add</span>
+                Find Friends
+            </button>
+        </div>
+    </div>
+
+    <div class="demo-card">
+        <h2>Friends List</h2>
+        <div id="friends-list">
+            <div class="loading">Click "Load Friends" to see your friends</div>
+        </div>
+    </div>
+
+    <!-- Modal Overlay -->
+    <div id="modal-overlay" class="modal-overlay">
+        <!-- Modals will be inserted here -->
+    </div>
+
+    <!-- Toast Container -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- Demo JavaScript -->
+    <script type="module">
+        // Mock Firebase config for demo
+        const COLLECTIONS = {
+            PROFILES: 'profiles',
+            FRIEND_REQUESTS: 'friendRequests'
+        };
+
+        // Mock auth manager for demo
+        const authManager = {
+            getUserProfile: () => ({
+                uid: 'demo-user-123',
+                email: 'demo@example.com',
+                displayName: 'Demo User',
+                friends: ['friend1', 'friend2']
+            })
+        };
+
+        // Mock utility functions
+        function showLoading(containerId) {
+            const container = document.getElementById(containerId);
+            if (container) {
+                container.innerHTML = '<div class="loading">Loading...</div>';
+            }
+        }
+
+        function showEmptyState(containerId, icon, title, message) {
+            const container = document.getElementById(containerId);
+            if (container) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <span class="material-icons" style="font-size: 48px; margin-bottom: 16px;">${icon}</span>
+                        <div style="font-weight: 500; margin-bottom: 8px;">${title}</div>
+                        <div>${message}</div>
+                    </div>
+                `;
+            }
+        }
+
+        function showModal(content) {
+            const overlay = document.getElementById('modal-overlay');
+            if (overlay) {
+                overlay.innerHTML = `<div class="modal-content">${content}</div>`;
+                overlay.style.display = 'flex';
+            }
+        }
+
+        function hideModal() {
+            const overlay = document.getElementById('modal-overlay');
+            if (overlay) {
+                overlay.style.display = 'none';
+            }
+        }
+
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            if (container) {
+                const toast = document.createElement('div');
+                toast.className = `toast ${type}`;
+                toast.innerHTML = `
+                    <span class="material-icons">
+                        ${type === 'success' ? 'check_circle' : type === 'error' ? 'error' : 'info'}
+                    </span>
+                    ${message}
+                `;
+                container.appendChild(toast);
+                
+                setTimeout(() => {
+                    toast.remove();
+                }, 4000);
+            }
+        }
+
+        function formatDate(timestamp) {
+            return new Date(timestamp).toLocaleDateString();
+        }
+
+        // Mock friends data
+        const mockFriends = [
+            {
+                id: 'friend1',
+                displayName: 'Alice Johnson',
+                email: 'alice@example.com',
+                profilePictureUrl: '',
+                memberSince: new Date('2023-01-15'),
+                numPosts: 23
+            },
+            {
+                id: 'friend2',
+                displayName: 'Bob Smith',
+                email: 'bob@example.com',
+                profilePictureUrl: '',
+                memberSince: new Date('2023-06-20'),
+                numPosts: 15
+            }
+        ];
+
+        const mockPotentialFriends = [
+            {
+                id: 'user1',
+                displayName: 'Charlie Brown',
+                email: 'charlie@example.com',
+                profilePictureUrl: '',
+                memberSince: new Date('2023-08-10'),
+                numPosts: 8
+            },
+            {
+                id: 'user2',
+                displayName: 'Diana Prince',
+                email: 'diana@example.com',
+                profilePictureUrl: '',
+                memberSince: new Date('2023-09-05'),
+                numPosts: 12
+            }
+        ];
+
+        // Demo Friends Manager
+        class DemoFriendsManager {
+            constructor() {
+                this.friends = mockFriends;
+            }
+
+            async loadFriends() {
+                const container = document.getElementById('friends-list');
+                if (!container) return;
+
+                showLoading('friends-list');
+                
+                // Simulate loading delay
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                
+                if (this.friends.length === 0) {
+                    showEmptyState('friends-list', 'people', 'No friends yet', 'Connect with other community members');
+                    return;
+                }
+
+                this.renderFriends();
+            }
+
+            renderFriends() {
+                const container = document.getElementById('friends-list');
+                if (!container) return;
+
+                const friendsHTML = this.friends.map(friend => this.renderFriend(friend)).join('');
+                container.innerHTML = friendsHTML;
+            }
+
+            renderFriend(friend) {
+                return `
+                    <div class="friend-item">
+                        <div class="friend-avatar">
+                            ${friend.profilePictureUrl ? 
+                                `<img src="${friend.profilePictureUrl}" alt="${friend.displayName}">` :
+                                `<span class="material-icons">person</span>`
+                            }
+                        </div>
+                        <div class="friend-info">
+                            <div class="friend-name">${friend.displayName || friend.email}</div>
+                            <div class="friend-status">${this.getFriendStatus(friend)}</div>
+                        </div>
+                        <div class="friend-actions">
+                            <button class="btn btn-secondary" onclick="demoFriendsManager.chatWithFriend('${friend.id}')">
+                                <span class="material-icons">chat</span>
+                                Chat
+                            </button>
+                            <button class="btn btn-secondary" onclick="demoFriendsManager.removeFriend('${friend.id}')">
+                                <span class="material-icons">person_remove</span>
+                                Remove
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }
+
+            getFriendStatus(friend) {
+                const memberSince = friend.memberSince ? formatDate(friend.memberSince) : 'Unknown';
+                const postCount = friend.numPosts || 0;
+                return `Member since ${memberSince} • ${postCount} posts`;
+            }
+
+            async showFindFriends() {
+                showLoading('friends-list');
+                
+                // Simulate loading delay
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+                this.showFindFriendsModal(mockPotentialFriends);
+            }
+
+            showFindFriendsModal(users) {
+                const usersHTML = users.map(user => `
+                    <div class="friend-item">
+                        <div class="friend-avatar">
+                            ${user.profilePictureUrl ? 
+                                `<img src="${user.profilePictureUrl}" alt="${user.displayName}">` :
+                                `<span class="material-icons">person</span>`
+                            }
+                        </div>
+                        <div class="friend-info">
+                            <div class="friend-name">${user.displayName || user.email}</div>
+                            <div class="friend-status">${this.getFriendStatus(user)}</div>
+                        </div>
+                        <div class="friend-actions">
+                            <button class="btn btn-primary" onclick="demoFriendsManager.sendFriendRequest('${user.id}')">
+                                <span class="material-icons">person_add</span>
+                                Add Friend
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+
+                const modalContent = `
+                    <div class="modal-header">
+                        <h2>Find Friends</h2>
+                        <button class="icon-btn" onclick="hideModal()">
+                            <span class="material-icons">close</span>
+                        </button>
+                    </div>
+                    <div style="padding: 20px;">
+                        <div class="find-friends-list">
+                            ${users.length > 0 ? usersHTML : '<p>No new users to connect with</p>'}
+                        </div>
+                    </div>
+                `;
+
+                showModal(modalContent);
+            }
+
+            async sendFriendRequest(friendId) {
+                const user = mockPotentialFriends.find(u => u.id === friendId);
+                if (user) {
+                    showToast(`Friend request sent to ${user.displayName}!`, 'success');
+                    hideModal();
+                }
+            }
+
+            async removeFriend(friendId) {
+                if (!confirm('Are you sure you want to remove this friend?')) return;
+
+                const friendIndex = this.friends.findIndex(f => f.id === friendId);
+                if (friendIndex > -1) {
+                    const friendName = this.friends[friendIndex].displayName;
+                    this.friends.splice(friendIndex, 1);
+                    showToast(`${friendName} removed from friends`, 'success');
+                    this.renderFriends();
+                }
+            }
+
+            async chatWithFriend(friendId) {
+                const friend = this.friends.find(f => f.id === friendId);
+                if (friend) {
+                    showToast(`Starting chat with ${friend.displayName}...`, 'info');
+                }
+            }
+        }
+
+        // Initialize demo
+        const demoFriendsManager = new DemoFriendsManager();
+        window.demoFriendsManager = demoFriendsManager;
+        window.hideModal = hideModal;
+
+        // Global demo functions
+        window.loadFriendsDemo = () => {
+            demoFriendsManager.loadFriends();
+        };
+
+        window.showFindFriendsDemo = () => {
+            demoFriendsManager.showFindFriends();
+        };
+
+        // Click outside modal to close
+        document.getElementById('modal-overlay').addEventListener('click', (e) => {
+            if (e.target === e.currentTarget) {
+                hideModal();
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clara Settings Demo</title>
+    <style>
+        :root {
+            --primary-color: #2196F3;
+            --primary-light: #E3F2FD;
+            --primary-dark: #1976D2;
+            --text-primary: #212121;
+            --text-secondary: #757575;
+            --background-color: #fafafa;
+            --surface-color: #ffffff;
+            --border-radius: 8px;
+            --shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: var(--background-color);
+            color: var(--text-primary);
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        .demo-card {
+            background: var(--surface-color);
+            border-radius: var(--border-radius);
+            padding: 24px;
+            margin-bottom: 20px;
+            box-shadow: var(--shadow);
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.2s ease;
+        }
+
+        .btn-primary {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+        }
+
+        .btn-secondary {
+            background: #f5f5f5;
+            color: var(--text-primary);
+        }
+
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+
+        .btn-danger {
+            background: #f44336;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #d32f2f;
+        }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 20px;
+        }
+
+        .modal-content {
+            background: var(--surface-color);
+            border-radius: var(--border-radius);
+            max-width: 700px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .modal-header h2 {
+            margin: 0;
+        }
+
+        .icon-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .icon-btn:hover {
+            background: #f5f5f5;
+        }
+
+        .settings-form {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .settings-section {
+            margin-bottom: 32px;
+            padding-bottom: 24px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .settings-section:last-of-type {
+            border-bottom: none;
+        }
+
+        .settings-section h3 {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 0 0 16px 0;
+            font-size: 18px;
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        .setting-item {
+            margin-bottom: 16px;
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 16px;
+        }
+
+        .setting-label {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            cursor: pointer;
+            flex: 1;
+        }
+
+        .setting-label input[type="checkbox"] {
+            display: none;
+        }
+
+        .checkbox-custom {
+            width: 20px;
+            height: 20px;
+            border: 2px solid #ddd;
+            border-radius: 4px;
+            position: relative;
+            background: white;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+
+        .setting-label input[type="checkbox"]:checked + .checkbox-custom {
+            background: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+
+        .setting-label input[type="checkbox"]:checked + .checkbox-custom::after {
+            content: '✓';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .setting-info {
+            flex: 1;
+        }
+
+        .setting-title {
+            font-weight: 500;
+            margin-bottom: 2px;
+            color: var(--text-primary);
+        }
+
+        .setting-description {
+            font-size: 14px;
+            color: var(--text-secondary);
+            line-height: 1.4;
+        }
+
+        .setting-select {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background: var(--surface-color);
+            min-width: 120px;
+            font-size: 14px;
+            color: var(--text-primary);
+        }
+
+        .setting-select:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+            margin-top: 24px;
+            padding-top: 16px;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 2000;
+        }
+
+        .toast {
+            background: #4CAF50;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 4px;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .toast.error {
+            background: #f44336;
+        }
+
+        .toast.info {
+            background: #2196F3;
+        }
+
+        /* Dark theme styles */
+        .theme-dark {
+            --primary-color: #2196F3;
+            --primary-light: #1E88E5;
+            --primary-dark: #1565C0;
+            --text-primary: #ffffff;
+            --text-secondary: #b0b0b0;
+            --background-color: #121212;
+            --surface-color: #1e1e1e;
+            --border-color: #333333;
+        }
+
+        .theme-dark .checkbox-custom {
+            border-color: #555;
+            background: #2a2a2a;
+        }
+
+        .theme-dark .setting-select {
+            background: #2a2a2a;
+            border-color: #555;
+            color: var(--text-primary);
+        }
+
+        .theme-dark .settings-section {
+            border-bottom-color: #333;
+        }
+
+        .theme-dark .modal-header {
+            border-bottom-color: #333;
+        }
+
+        .theme-dark .form-actions {
+            border-top-color: #333;
+        }
+
+        .theme-dark .icon-btn:hover {
+            background: #333;
+        }
+
+        .theme-dark .btn-secondary {
+            background: #2a2a2a;
+            color: var(--text-primary);
+        }
+
+        .theme-dark .btn-secondary:hover {
+            background: #3a3a3a;
+        }
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+</head>
+<body>
+    <div class="demo-card">
+        <h1>Clara Settings Demo</h1>
+        <p>This demonstrates the settings interface for the Clara PWA.</p>
+        
+        <button class="btn btn-primary" onclick="showSettingsDemo()">
+            <span class="material-icons">settings</span>
+            Open Settings
+        </button>
+    </div>
+
+    <!-- Modal Overlay -->
+    <div id="modal-overlay" class="modal-overlay">
+        <!-- Modal content will be inserted here -->
+    </div>
+
+    <!-- Toast Container -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- Demo JavaScript -->
+    <script>
+        // Mock user settings
+        let userSettings = {
+            pushNotifications: true,
+            emailNotifications: false,
+            friendNotifications: true,
+            profilePublic: true,
+            showOnlineStatus: true,
+            allowDirectMessages: true,
+            chatSounds: true,
+            autoScrollChat: true,
+            chatFontSize: 'medium',
+            theme: 'light',
+            offlineMode: false,
+            allowAnalytics: true
+        };
+
+        // Utility functions
+        function showModal(content) {
+            const overlay = document.getElementById('modal-overlay');
+            if (overlay) {
+                overlay.innerHTML = content;
+                overlay.style.display = 'flex';
+            }
+        }
+
+        function hideModal() {
+            const overlay = document.getElementById('modal-overlay');
+            if (overlay) {
+                overlay.style.display = 'none';
+            }
+        }
+
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            if (container) {
+                const toast = document.createElement('div');
+                toast.className = `toast ${type}`;
+                toast.innerHTML = `
+                    <span class="material-icons">
+                        ${type === 'success' ? 'check_circle' : type === 'error' ? 'error' : 'info'}
+                    </span>
+                    ${message}
+                `;
+                container.appendChild(toast);
+                
+                setTimeout(() => {
+                    toast.remove();
+                }, 4000);
+            }
+        }
+
+        // Demo Settings Manager
+        class DemoSettingsManager {
+            constructor() {
+                this.settings = userSettings;
+            }
+
+            showSettingsModal() {
+                const modalContent = `
+                    <div class="modal-header">
+                        <h2>Settings</h2>
+                        <button class="icon-btn" onclick="hideModal()">
+                            <span class="material-icons">close</span>
+                        </button>
+                    </div>
+                    <div class="settings-form">
+                        <!-- Notification Settings -->
+                        <div class="settings-section">
+                            <h3><span class="material-icons">notifications</span> Notifications</h3>
+                            <div class="setting-item">
+                                <label class="setting-label">
+                                    <input type="checkbox" id="push-notifications" ${this.settings.pushNotifications ? 'checked' : ''}>
+                                    <span class="checkbox-custom"></span>
+                                    <div class="setting-info">
+                                        <div class="setting-title">Push Notifications</div>
+                                        <div class="setting-description">Receive notifications for new messages and activities</div>
+                                    </div>
+                                </label>
+                            </div>
+                            <div class="setting-item">
+                                <label class="setting-label">
+                                    <input type="checkbox" id="email-notifications" ${this.settings.emailNotifications ? 'checked' : ''}>
+                                    <span class="checkbox-custom"></span>
+                                    <div class="setting-info">
+                                        <div class="setting-title">Email Notifications</div>
+                                        <div class="setting-description">Receive email updates for important activities</div>
+                                    </div>
+                                </label>
+                            </div>
+                            <div class="setting-item">
+                                <label class="setting-label">
+                                    <input type="checkbox" id="friend-notifications" ${this.settings.friendNotifications ? 'checked' : ''}>
+                                    <span class="checkbox-custom"></span>
+                                    <div class="setting-info">
+                                        <div class="setting-title">Friend Activity</div>
+                                        <div class="setting-description">Get notified when friends post or send messages</div>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Privacy Settings -->
+                        <div class="settings-section">
+                            <h3><span class="material-icons">privacy_tip</span> Privacy</h3>
+                            <div class="setting-item">
+                                <label class="setting-label">
+                                    <input type="checkbox" id="profile-visibility" ${this.settings.profilePublic ? 'checked' : ''}>
+                                    <span class="checkbox-custom"></span>
+                                    <div class="setting-info">
+                                        <div class="setting-title">Public Profile</div>
+                                        <div class="setting-description">Make your profile visible to all community members</div>
+                                    </div>
+                                </label>
+                            </div>
+                            <div class="setting-item">
+                                <label class="setting-label">
+                                    <input type="checkbox" id="show-online-status" ${this.settings.showOnlineStatus ? 'checked' : ''}>
+                                    <span class="checkbox-custom"></span>
+                                    <div class="setting-info">
+                                        <div class="setting-title">Show Online Status</div>
+                                        <div class="setting-description">Let others see when you're online</div>
+                                    </div>
+                                </label>
+                            </div>
+                            <div class="setting-item">
+                                <label class="setting-label">
+                                    <input type="checkbox" id="allow-messages" ${this.settings.allowDirectMessages ? 'checked' : ''}>
+                                    <span class="checkbox-custom"></span>
+                                    <div class="setting-info">
+                                        <div class="setting-title">Direct Messages</div>
+                                        <div class="setting-description">Allow other users to send you direct messages</div>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Chat Settings -->
+                        <div class="settings-section">
+                            <h3><span class="material-icons">chat</span> Chat</h3>
+                            <div class="setting-item">
+                                <label class="setting-label">
+                                    <input type="checkbox" id="chat-sounds" ${this.settings.chatSounds ? 'checked' : ''}>
+                                    <span class="checkbox-custom"></span>
+                                    <div class="setting-info">
+                                        <div class="setting-title">Chat Sounds</div>
+                                        <div class="setting-description">Play sound for new messages</div>
+                                    </div>
+                                </label>
+                            </div>
+                            <div class="setting-item">
+                                <label class="setting-label">
+                                    <input type="checkbox" id="auto-scroll" ${this.settings.autoScrollChat ? 'checked' : ''}>
+                                    <span class="checkbox-custom"></span>
+                                    <div class="setting-info">
+                                        <div class="setting-title">Auto-scroll Chat</div>
+                                        <div class="setting-description">Automatically scroll to new messages</div>
+                                    </div>
+                                </label>
+                            </div>
+                            <div class="setting-item">
+                                <div class="setting-info">
+                                    <div class="setting-title">Font Size</div>
+                                    <div class="setting-description">Adjust chat text size</div>
+                                </div>
+                                <select id="chat-font-size" class="setting-select">
+                                    <option value="small" ${this.settings.chatFontSize === 'small' ? 'selected' : ''}>Small</option>
+                                    <option value="medium" ${this.settings.chatFontSize === 'medium' ? 'selected' : ''}>Medium</option>
+                                    <option value="large" ${this.settings.chatFontSize === 'large' ? 'selected' : ''}>Large</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- App Settings -->
+                        <div class="settings-section">
+                            <h3><span class="material-icons">tune</span> App</h3>
+                            <div class="setting-item">
+                                <div class="setting-info">
+                                    <div class="setting-title">Theme</div>
+                                    <div class="setting-description">Choose your preferred theme</div>
+                                </div>
+                                <select id="app-theme" class="setting-select">
+                                    <option value="light" ${this.settings.theme === 'light' ? 'selected' : ''}>Light</option>
+                                    <option value="dark" ${this.settings.theme === 'dark' ? 'selected' : ''}>Dark</option>
+                                    <option value="auto" ${this.settings.theme === 'auto' ? 'selected' : ''}>Auto</option>
+                                </select>
+                            </div>
+                            <div class="setting-item">
+                                <label class="setting-label">
+                                    <input type="checkbox" id="offline-mode" ${this.settings.offlineMode ? 'checked' : ''}>
+                                    <span class="checkbox-custom"></span>
+                                    <div class="setting-info">
+                                        <div class="setting-title">Offline Mode</div>
+                                        <div class="setting-description">Cache content for offline viewing</div>
+                                    </div>
+                                </label>
+                            </div>
+                            <div class="setting-item">
+                                <label class="setting-label">
+                                    <input type="checkbox" id="analytics" ${this.settings.allowAnalytics ? 'checked' : ''}>
+                                    <span class="checkbox-custom"></span>
+                                    <div class="setting-info">
+                                        <div class="setting-title">Usage Analytics</div>
+                                        <div class="setting-description">Help improve the app by sharing anonymous usage data</div>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Account Actions -->
+                        <div class="settings-section">
+                            <h3><span class="material-icons">account_circle</span> Account</h3>
+                            <div class="setting-item">
+                                <button class="btn btn-secondary" onclick="demoSettingsManager.exportData()">
+                                    <span class="material-icons">download</span>
+                                    Export My Data
+                                </button>
+                                <div class="setting-description">Download a copy of your data</div>
+                            </div>
+                            <div class="setting-item">
+                                <button class="btn btn-secondary" onclick="demoSettingsManager.clearCache()">
+                                    <span class="material-icons">cached</span>
+                                    Clear Cache
+                                </button>
+                                <div class="setting-description">Clear cached data to free up storage</div>
+                            </div>
+                            <div class="setting-item">
+                                <button class="btn btn-danger" onclick="demoSettingsManager.deleteAccount()">
+                                    <span class="material-icons">delete_forever</span>
+                                    Delete Account
+                                </button>
+                                <div class="setting-description">Permanently delete your account and all data</div>
+                            </div>
+                        </div>
+
+                        <!-- Form Actions -->
+                        <div class="form-actions">
+                            <button type="button" class="btn btn-secondary" onclick="hideModal()">Cancel</button>
+                            <button type="button" class="btn btn-primary" onclick="demoSettingsManager.saveSettings()">
+                                <span class="material-icons">save</span>
+                                Save Settings
+                            </button>
+                        </div>
+                    </div>
+                `;
+
+                showModal(modalContent);
+            }
+
+            saveSettings() {
+                // Collect settings from form
+                this.settings = {
+                    pushNotifications: document.getElementById('push-notifications')?.checked || false,
+                    emailNotifications: document.getElementById('email-notifications')?.checked || false,
+                    friendNotifications: document.getElementById('friend-notifications')?.checked || false,
+                    profilePublic: document.getElementById('profile-visibility')?.checked || false,
+                    showOnlineStatus: document.getElementById('show-online-status')?.checked || false,
+                    allowDirectMessages: document.getElementById('allow-messages')?.checked || false,
+                    chatSounds: document.getElementById('chat-sounds')?.checked || false,
+                    autoScrollChat: document.getElementById('auto-scroll')?.checked || false,
+                    chatFontSize: document.getElementById('chat-font-size')?.value || 'medium',
+                    theme: document.getElementById('app-theme')?.value || 'light',
+                    offlineMode: document.getElementById('offline-mode')?.checked || false,
+                    allowAnalytics: document.getElementById('analytics')?.checked || false
+                };
+
+                // Apply theme immediately
+                this.applyTheme(this.settings.theme);
+                
+                showToast('Settings saved successfully!', 'success');
+                hideModal();
+            }
+
+            applyTheme(theme) {
+                const body = document.body;
+                
+                // Remove existing theme classes
+                body.classList.remove('theme-light', 'theme-dark');
+                
+                if (theme === 'dark') {
+                    body.classList.add('theme-dark');
+                } else if (theme === 'light') {
+                    body.classList.add('theme-light');
+                } else if (theme === 'auto') {
+                    // Use system preference
+                    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                    body.classList.add(prefersDark ? 'theme-dark' : 'theme-light');
+                }
+            }
+
+            exportData() {
+                showToast('Preparing data export...', 'info');
+                
+                const userData = {
+                    settings: this.settings,
+                    exportDate: new Date().toISOString(),
+                    version: '1.0.0'
+                };
+
+                const dataStr = JSON.stringify(userData, null, 2);
+                const dataBlob = new Blob([dataStr], { type: 'application/json' });
+                
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(dataBlob);
+                link.download = `clara-demo-data-${new Date().toISOString().split('T')[0]}.json`;
+                
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                
+                showToast('Data export downloaded!', 'success');
+            }
+
+            clearCache() {
+                if (!confirm('This will clear all cached data. Continue?')) return;
+
+                // Simulate cache clearing
+                showToast('Cache cleared successfully!', 'success');
+            }
+
+            deleteAccount() {
+                const confirmation = prompt('Type "DELETE" to confirm account deletion:');
+                
+                if (confirmation !== 'DELETE') {
+                    showToast('Account deletion cancelled', 'info');
+                    return;
+                }
+
+                const finalConfirm = confirm('Are you absolutely sure? This will permanently delete your account.');
+                
+                if (finalConfirm) {
+                    showToast('Account deleted successfully', 'success');
+                    hideModal();
+                }
+            }
+        }
+
+        // Initialize demo
+        const demoSettingsManager = new DemoSettingsManager();
+        window.demoSettingsManager = demoSettingsManager;
+
+        // Global functions
+        window.showSettingsDemo = () => {
+            demoSettingsManager.showSettingsModal();
+        };
+
+        window.hideModal = hideModal;
+
+        // Click outside modal to close
+        document.getElementById('modal-overlay').addEventListener('click', (e) => {
+            if (e.target === e.currentTarget) {
+                hideModal();
+            }
+        });
+
+        // Apply initial theme
+        demoSettingsManager.applyTheme(userSettings.theme);
+    </script>
+</body>
+</html>
